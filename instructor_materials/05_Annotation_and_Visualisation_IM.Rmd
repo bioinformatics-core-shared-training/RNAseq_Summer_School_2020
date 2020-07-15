@@ -1,0 +1,409 @@
+---
+title: "RNA-seq Analysis in R"
+subtitle: "Annotation and Visualisation of RNA-seq results - INSTRUCTOR MATERIALS"
+author: "Stephane Ballereau, Abbi Edwards, Ashley Sawle"
+date: '`r format(Sys.time(), "Last modified: %d %b %Y")`'
+output:
+  html_notebook:
+    toc: yes
+  html_document:
+    toc: yes
+minutes: 300
+layout: page
+editor_options: 
+  chunk_output_type: inline
+---
+
+REMEMBER TO COMMENT AS YOU GO!!!!!!!!
+SETWD WITH GUI
+
+```{r setup, message=FALSE}
+library(EnsDb.Mmusculus.v79)
+library(DESeq2)
+library(tidyverse)
+```
+
+Before starting this section, we will make sure we have all the relevant objects
+from the Differential Expression analysis.
+
+```{r loadData}
+load("../Course_Materials/Robjects/DE.RData")
+```
+
+# Overview
+
+- Annotation
+- Visualising DE results
+
+# Adding annotation to the DESeq2 results
+
+VIEW resLvV
+
+only see the Ensembl Gene ID, which is not very informative. 
+
+There are a number of ways to add annotation. The are R packages for this at an organism level which are updated every 6 months.
+
+An alternative approach is to use `biomaRt`, an interface to the 
+[BioMart](http://www.biomart.org/) resource. 
+
+Today we will use the *org.db* method.
+
+## Set up our query
+
+We use the select function to query the database. Now we need to set up a query. This requires us to tell it what we want and what we have. For this we need to specify three things: 
+
+(a) What type of information we are going to search the dataset on - called
+**keytypes**. In our case this is Ensembl Gene IDs
+(b) A vector of the **keys** for our filter - the Ensembl Gene IDs from our DE 
+results table
+(c) What columns (**columns**) of the dataset we want returned.
+
+```{r queryOrgDb, message=F}
+
+# what can we search for? 'columns'
+columns(EnsDb.Mmusculus.v79)
+
+# what can we search with? 'keytypes'
+keytypes(EnsDb.Mmusculus.v79)
+
+# lets set it up
+ourCols <- c("SYMBOL", "GENEID", "ENTREZID")
+ourKeys <- rownames(resLvV)[1:1000]
+
+# run the query
+annot <- AnnotationDbi::select(EnsDb.Mmusculus.v79, 
+                keys=ourKeys, 
+                columns=ourCols, 
+                keytype="GENEID")
+```
+
+
+### One-to-many relationships
+
+Let's inspect the annotation.
+
+```{r inspectAnnot}
+
+head(annot)
+length(unique(annot$ENTREZID)) # Why are there NAs in the ENTREZID column?
+
+dim(annot) # why are there more than 1000 rows?
+
+# find all rows containing duplicated ensembl ids
+annot %>%  
+    add_count(GENEID) %>%  
+    dplyr::filter(n>1)
+
+```
+
+There are a couple of genes that have multiple entries in the retrieved 
+annotation. This is becaues there are multiple Entrez IDs for a single Ensembl 
+gene. These one-to-many relationships come up frequently in genomic databases, 
+it is important to be aware of them and check when necessary. 
+
+We will need to do a little work before adding the annotation to out results 
+table. We could decide to discard one or both of the Entrez ID mappings, or we 
+could concatenate the Entrez IDs so that we don't lose information. 
+
+this illustrates how/why annotation is complicated and difficult
+
+## Retrieve full annotation
+
+> ### Challenge 1 {.challenge}
+
+> A reminder of the code we ran:
+
+```
+# lets set it up
+ourCols <- c("SYMBOL", "GENEID", "ENTREZID")
+ourKeys <- rownames(resLvV)[1:1000]
+
+# run the query
+annot <- AnnotationDbi::select(EnsDb.Mmusculus.v79, 
+                keys=ourKeys, 
+                columns=ourCols, 
+                keytype="GENEID")
+```
+
+> That was just 1000 genes. We need annotations for the entire results table.
+>   
+> (a) Run the same query using all of the genes in our results table (`resLvV`)  
+>
+> (b) Can we also have the biotype of our genes too? Hint: You can find the name of the column for this by running columns(EnsDb.Mmusculus.v79)
+>
+> (c) How many Ensembl genes have multipe Entrez IDs associated with them?
+
+```{r solutionChallenge1code, eval=FALSE, message=FALSE, warnings=FALSE}
+
+# lets set it up
+ourCols <- c("SYMBOL", "GENEID", "ENTREZID", "GENEBIOTYPE")
+ourKeys <- rownames(resLvV)
+
+# run the query
+annot <-AnnotationDbi::select(EnsDb.Mmusculus.v79, 
+                keys=ourKeys, 
+                columns=ourCols, 
+                keytype="GENEID")
+# multiple EntrezIDs
+multiples <- annot %>%
+  add_count(GENEID) %>%  
+  dplyr::filter(n>1)
+
+length(unique(multiples$SYMBOL))
+
+```
+
+### Add annotation to the results table
+
+* we have created an annotation table:
+    * modified the column names
+    * added median transcript length
+    * dealt with the one-to-many issues for Entrez IDs.
+
+
+```{r addAnnotation, message=FALSE}
+load("../Course_Materials/Robjects/Ensembl_annotations.RData")
+colnames(ensemblAnnot)
+annotLvV <- as.data.frame(resLvV) %>% 
+    rownames_to_column("GeneID") %>% 
+    left_join(ensemblAnnot, "GeneID") %>% 
+    rename(logFC=log2FoldChange, FDR=padj)
+```
+
+
+Finally we can output the annotation DE results using `write_tsv`.
+
+```{r outputDEtables, eval=F}
+write_tsv(annotLvV, "../Course_Materials/data/VirginVsLactating_Results_Annotated.txt")
+```
+
+have to a look and see if genes make biological sense
+```{r quickLook}
+annotLvV %>%
+    arrange(FDR) %>%
+    head(10)
+```
+
+
+# Visualisation
+
+* `DESeq2` provides a functon called `lfcShrink` that shrinks log-Fold Change 
+(LFC) estimates towards zero  
+* genes with low counts and high FC appear be much more significant than they are.
+* The `lfcShrink` method
+compensates for this and allows better visualisation and ranking of genes. 
+
+```{r shrinkLFC}
+ddsShrink <- lfcShrink(ddsObj, coef="Status_lactate_vs_virgin")
+shrinkLvV <- as.data.frame(ddsShrink) %>%
+    rownames_to_column("GeneID") %>% 
+    left_join(ensemblAnnot, "GeneID") %>% 
+    rename(logFC=log2FoldChange, FDR=padj)
+```
+
+## P-value histogram
+
+A quick and easy "sanity check" for our DE results is to generate a p-value 
+histogram. Refer to Dom's lecture yesterday. 
+
+Go to menti.com 86 66 47
+
+What we should see is a high bar in the `0 - 0.05` and then a roughly uniform tail to the right of this.
+
+```{r pvalHist, fig.align="center"}
+hist(shrinkLvV$pvalue)
+```
+
+## MA plots
+
+MA plots are a common way to visualize the results of a differential analysis. 
+We met them briefly towards the end of [Session 
+2](02_Preprocessing_Data.nb.html) yesterday.
+
+This plot shows the log-Fold Change against expression but remember its a mean across all the samples
+
+`DESeq2` has a handy function for plotting this...
+
+```{r maPlotDESeq2, fig.align="center", fig.width=5, fig.height=5}
+plotMA(ddsShrink, alpha=0.05)
+```
+
+
+### A Brief Introduction to `ggplot2`
+
+
+In brief:-
+
+- `shrinkLvV` is our data frame containing the variables we wish to plot
+- `aes` creates a mapping between the variables in our data frame to the 
+*aes*thetic proprties of the plot:
+    + the x-axis will be mapped to log2(`baseMean`)
+    + the y-axis will be mapped to the `logFC`
+- `geom_point` specifies the particular type of plot we want (in this case a scatter 
+plot)
+- `geom_text` allows us to add labels to some or all of the points
+    + see 
+    [the cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf) 
+    for other plot types
+
+we can add metadata from the `sampleinfo` table to the data. The colours are automatically chosen by
+`ggplot2`, but we can specifiy particular values if we want.
+
+Say we want to add top 10 most sig expressed genes to graph at labels, simplest way is to make an extra column with just those values in.
+
+GO RIDICULOUSLY SLOWLY 
+they are layers
+
+```{r maPlot, fig.align="center", fig.width=5, fig.height=5}
+# add a column with the names of only the top 10 genes
+cutoff <- sort(shrinkLvV$pvalue)[10]
+shrinkLvV <- shrinkLvV %>% 
+    mutate(TopGeneLabel=ifelse(pvalue<=cutoff, Symbol, ""))
+
+ggplot(shrinkLvV, aes(x = log2(baseMean), y=logFC)) + 
+    geom_point(aes(colour=FDR < 0.05), shape=20, size=0.5) +
+    geom_text(aes(label=TopGeneLabel)) +
+    labs(x="mean of normalised counts", y="log fold change")
+```
+
+## Volcano plot
+> ### Challenge 2 {.challenge}
+
+If you haven't already make sure you load in our data and annotation. Then shrink the values. You can copy and paste the code below.
+
+```
+# First load data and annotations
+load("../Robjects/DE.RData")
+load("../Robjects/Ensembl_annotations.RData")
+
+#Shrink our values
+ddsShrink <- lfcShrink(ddsObj, coef="Status_lactate_vs_virgin")
+shrinkLvV <- as.data.frame(ddsShrink) %>%
+    rownames_to_column("GeneID") %>% 
+    left_join(ensemblAnnot, "GeneID") %>% 
+    rename(logFC=log2FoldChange, FDR=padj)
+```
+
+> Use the log2 fold change (`logFC`) on the x-axis, and use `-log10(pvalue)` on the y-axis.
+> (This `-log10` transformation is commonly used for p-values as it means that more
+> significant genes have a higher scale) 
+>
+> (a) Create a new column of -log10(pvalue) values in shrinkLvV
+>
+> (b) Create a plot with points coloured by pvalue < 0.05 similar to how we did in the MA plot
+
+An example of what your plot should look like:
+![](../images/Volcano.png) 
+
+```{r volcanoPlot, fig.height=5, fig.width=7}
+# First load data and annotations
+load("../Course_Materials/Robjects/DE.RData")
+load("../Course_Materials/Robjects/Ensembl_annotations.RData")
+
+#Shrink our values
+ddsShrink <- lfcShrink(ddsObj, coef="Status_lactate_vs_virgin")
+shrinkLvV <- as.data.frame(ddsShrink) %>%
+    rownames_to_column("GeneID") %>% 
+    left_join(ensemblAnnot, "GeneID") %>% 
+    rename(logFC=log2FoldChange, FDR=padj)
+
+# first remove the filtered genes (FDR=NA) and create a -log10(FDR) column
+filtTab <- shrinkLvV %>% 
+    filter(!is.na(FDR)) %>% 
+    mutate(`-log10(FDR)` = -log10(FDR))
+
+ggplot(filtTab, aes(x = logFC, y=`-log10(FDR)`)) + 
+    geom_point(aes(colour=FDR < 0.05), size=1)
+```
+
+## Heatmap
+
+We're going to use the package `ComplexHeatmap` [@Gu2016]. We'll also use
+`circlize` to generate a colour scale [@Gu2014].
+
+```{r complexHeatmap, message=F}
+library(ComplexHeatmap)
+library(circlize)
+```
+
+We can't plot the entire data set, let's just select the top 150 by FDR. We'll
+also z-transform the counts.
+
+wt means weight, - for reverse order
+
+Stephane mentioned rlog yesterday, use vst today
+both avaliable with Deseq2, best to check manual to get exact differences
+for plotting the differences are subtle so just use vst because its faster
+
+```{r selectGenes}
+# get the top genes
+sigGenes <- as.data.frame(shrinkLvV) %>% 
+    top_n(150, wt=-FDR) %>% 
+    pull("GeneID")
+
+# filter the data for the top 200 by padj in the LRT test
+plotDat <- vst(ddsObj)[sigGenes,] %>% 
+    assay()
+z.mat <- t(scale(t(plotDat), center=TRUE, scale=TRUE))
+```
+
+* assay pulls out the counts
+* z.mat the z-score matrix
+* yesterday we used heatmap2 which calculates these automatically for us, for complex heatmap we do it manually
+* z- score is fc centred around zero and scaled
+* the funtion 'scale' creates the z score for us but it expects data in the opposite orientation so we have to do a couple of transformations to make it work.
+
+
+skew the scale for us, limits everything outside the myRamp to the truest colour so the small numbers in the middle don't just end up white with no difference.
+
+```{r colourScale}
+# colour palette
+myPalette <- c("red3", "ivory", "blue3")
+myRamp = colorRamp2(c(-2, 0, 2), myPalette)
+```
+
+```{r heatmap, fig.width=5, fig.height=8}
+Heatmap(z.mat, name = "z-score",
+        col = myRamp,            
+        show_row_names = FALSE,
+        cluster_columns = FALSE)
+```
+
+we can also split the heat map into clusters and add some annotation.
+
+hclust generates the same tree we see on the left of our heatmap.
+
+we have to decide at which level we want to cut the tree, 1 is lowest level
+
+ha1 where we get annotation from
+
+rect_gp is grey rectangle around each block
+lwd is line weight
+```{r splitHeatmap, fig.width=5, fig.height=8}
+# cluster the data and split the tree
+hcDat <- hclust(dist(z.mat))
+cutGroups <- cutree(hcDat, h=4)
+
+ha1 = HeatmapAnnotation(df = colData(ddsObj)[,c("CellType", "Status")])
+
+Heatmap(z.mat, name = "z-score",
+        col = myRamp,            
+        show_row_name = FALSE,
+        cluster_columns = FALSE,
+        split=cutGroups,
+        rect_gp = gpar(col = "darkgrey", lwd=0.5),
+        top_annotation = ha1)
+```
+
+
+```{r saveEnvironment, eval=FALSE}
+save(annotLvV, shrinkLvV, file="../Course_Materials/results/Annotated_Results_LvV.RData")
+```
+
+
+
+
+
+--------------------------------------------------------------------------------
+
+# References

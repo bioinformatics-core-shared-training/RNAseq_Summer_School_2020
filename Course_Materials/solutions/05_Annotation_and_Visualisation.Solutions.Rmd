@@ -1,0 +1,119 @@
+---
+title: "RNA-seq Analysis in R"
+subtitle: "Annotation and Visualisation of RNA-seq results - Solutions"
+author: "Stephane Ballereau, Dominique-Laurent Couturier, Mark Dunning, Abbi Edwards, Ashley Sawle"
+date: '`r format(Sys.time(), "Last modified: %d %b %Y")`'
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+minutes: 300
+layout: page
+---
+
+```{r setup, include=FALSE}
+library(EnsDb.Mmusculus.v79)
+library(DESeq2)
+library(tidyverse)
+```
+
+```{r prepareData, echo=FALSE, message=FALSE, warning=FALSE}
+load("../Robjects/DE.RData")
+```
+
+
+## Retrieve full annotation
+
+> ### Challenge 1 {.challenge}
+
+> A reminder of the code we ran:
+
+```
+# lets set it up
+ourCols <- c("SYMBOL", "GENEID", "ENTREZID")
+ourKeys <- rownames(resLvV)[1:1000]
+
+# run the query
+annot <- AnnotationDbi::select(EnsDb.Mmusculus.v79, 
+                keys=ourKeys, 
+                columns=ourCols, 
+                keytype="GENEID")
+```
+
+> That was just 1000 genes. We need annotations for the entire results table.
+>   
+> (a) Run the same query using all of the genes in our results table (`resLvV`)  
+>
+> (b) Can we also have the biotype of our genes too? Hint: You can find the name of the column for this by running columns(EnsDb.Mmusculus.v79)
+>
+> (c) How many Ensembl genes have multipe Entrez IDs associated with them?
+
+
+```{r solutionChallenge1code, eval=FALSE, message=FALSE, warnings=FALSE}
+
+# lets set it up
+ourCols <- c("SYMBOL", "GENEID", "ENTREZID", "GENEBIOTYPE")
+ourKeys <- rownames(resLvV)
+
+# run the query
+annot <-AnnotationDbi::select(EnsDb.Mmusculus.v79, 
+                keys=ourKeys, 
+                columns=ourCols, 
+                keytype="GENEID")
+# multiple EntrezIDs
+multiples <- annot %>%
+  add_count(GENEID) %>%  
+  dplyr::filter(n>1)
+
+length(unique(multiples$SYMBOL))
+
+```
+
+> ### Challenge 2 {.challenge}
+
+If you haven't already make sure you load in our data and annotation. Then shrink the values. You can copy and paste the code below.
+
+```
+# First load data and annotations
+load("../Robjects/DE.RData")
+load("../Robjects/Ensembl_annotations.RData")
+
+#Shrink our values
+ddsShrink <- lfcShrink(ddsObj, coef="Status_lactate_vs_virgin")
+shrinkLvV <- as.data.frame(ddsShrink) %>%
+    rownames_to_column("GeneID") %>% 
+    left_join(ensemblAnnot, "GeneID") %>% 
+    rename(logFC=log2FoldChange, FDR=padj)
+```
+
+> Use the log2 fold change (`logFC`) on the x-axis, and use `-log10(pvalue)` on the y-axis.
+> (This `-log10` transformation is commonly used for p-values as it means that more
+> significant genes have a higher scale) 
+>
+> (a) Create a new column of -log10(pvalue) values in shrinkLvV
+>
+> (b) Create a plot with points coloured by pvalue < 0.05 similar to how we did in the MA plot
+
+
+```{r volcanoPlot, fig.height=5, fig.width=7}
+# First load data and annotations
+load("../Robjects/DE.RData")
+load("../Robjects/Ensembl_annotations.RData")
+
+#Shrink our values
+ddsShrink <- lfcShrink(ddsObj, coef="Status_lactate_vs_virgin")
+shrinkLvV <- as.data.frame(ddsShrink) %>%
+    rownames_to_column("GeneID") %>% 
+    left_join(ensemblAnnot, "GeneID") %>% 
+    rename(logFC=log2FoldChange, FDR=padj)
+
+# first remove the filtered genes (FDR=NA) and create a -log10(FDR) column
+filtTab <- shrinkLvV %>% 
+    filter(!is.na(FDR)) %>% 
+    mutate(`-log10(FDR)` = -log10(FDR))
+
+ggplot(filtTab, aes(x = logFC, y=`-log10(FDR)`)) + 
+    geom_point(aes(colour=FDR < 0.05), size=1)
+```
+
+

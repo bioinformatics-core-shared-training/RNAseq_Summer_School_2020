@@ -1,0 +1,75 @@
+---
+title: "RNA-seq analysis in R"
+subtitle: "Pre-processsing RNA-seq data - solutions"
+author: "Stephane Ballereau, Dominique-Laurent Couturier, Mark Dunning, Abbi Edwards, Ashley Sawle"
+date: '`r format(Sys.time(), "Last modified: %d %b %Y")`'
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+layout: page
+---
+
+### Data 
+
+```{r setup, message = FALSE}
+library(DESeq2)
+library(gplots)
+library(RColorBrewer)
+library(limma)
+library(tidyverse)
+```
+
+```{r prepareData, message=FALSE, include=FALSE}
+# This chunk is just for the knitting
+# Read the sample information into R
+sampleinfo <- read.delim("../data/SampleInfo_Corrected.txt", 
+                         stringsAsFactors = F)
+# Read the data into R
+seqdata <- read.delim("../data/GSE60450_Lactation.featureCounts", 
+                      stringsAsFactors = F,
+                      comment = "#")
+# Remove first two columns from seqdata
+countdata <- as.data.frame(seqdata) %>% 
+    column_to_rownames("Geneid") %>% # turn the geneid column into rownames
+    rename_all(str_remove, ".bam") %>% # remove the ".bam" from the column names
+    select(sampleinfo$Sample) %>% # keep sample columns using sampleinfo
+    as.matrix()
+# filter data
+keep <- rowSums(countdata) > 5
+countdata <- countdata[keep,]
+# rlogcounts
+rlogcounts <- rlog(countdata)
+# DGE list
+design <- as.formula(~ CellType)
+# create the DESeqDataSet object
+ddsObj <- DESeqDataSetFromMatrix(countData = countdata,
+                              colData = sampleinfo,
+                              design = design)
+ddsObj <- estimateSizeFactors(ddsObj)
+# normalised counts
+logcounts <- log2(countdata + 1)
+normalizedCounts <- counts(ddsObj, normalized=TRUE) 
+logNormalizedCounts <- log2(normalizedCounts + 1)
+```
+
+### Challenge 1
+>
+> 1. Use the `DESeq2` function `rlog` to transform the count data. This function
+> also normalises for library size.
+> 2. Plot the count distribution boxplots with this data.
+> How has this effected the count distributions?
+
+```{r}
+rlogcounts <- rlog(countdata)
+
+statusCol <- as.numeric(factor(sampleinfo$Status)) + 1
+# Check distributions of samples using boxplots
+boxplot(rlogcounts, 
+        xlab="", 
+        ylab="Log2(Counts)",
+        las=2,
+        col=statusCol)
+# Let's add a blue horizontal line that corresponds to the median logCPM
+abline(h=median(as.matrix(logcounts)), col="blue")
+```
