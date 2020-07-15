@@ -1,11 +1,12 @@
 ---
 title: "Introduction to RNAseq Methods"
-author: "Sankari Nagarajan"
-date: "May 2020"
+subtitle: "CRUK Summer School 2020"
+author: "Ashley Sawle"
+date: "July 2020"
 output:
   ioslides_presentation:
     css: stylesheet.css
-    logo: images/CRUK_Cambridge_Institute.png
+    logo: images/crukcc-transparent-small.png
     smaller: yes
     widescreen: yes
   beamer_presentation: default
@@ -186,10 +187,10 @@ the experiment and the nature of the RNA sample.
 
 The answer depends on the experiment:
 
-* Gene expression – typically just a short single read e.g. SE 50.
+* Gene expression – a short single read, e.g. SE 50, is sufficient.
 * kmer-based quantification of Gene Expression (Salmon etc.) - benefits from PE.
 * Transcriptome Analysis – longer paired-end reads (such as 2 x 75 bp).
-* Small RNA Analysis – short single read, e.f. SE50 - will need trimming.
+* Small RNA Analysis – short single read, e.g. SE50 - will need trimming.
 
 ## Library preparation
 
@@ -272,6 +273,30 @@ Poly-A transcripts + Other mRNAs e.g.:
 
 <img src="images/IlluminaLibraryPrep2.png" class="centerimg" style="width: 85%">
 
+## Sources of Noise
+
+<img src="images/Noise.svg" style="width: 65%; margin-left: 23%">
+
+## Sources of Noise - Sampling Bias
+
+<img src="images/SamplingBias.svg" class="centerimg" style="width: 60%">
+
+
+## Sources of Noise - Transcript Length
+
+<div style="margin-top: 60px; margin-bottom: 40px;">
+<img src="images/TranscriptLength.svg" class="centerimg" style="width: 65%">
+</div>
+
+<div>
+The length of the transcript affects the number of RNA fragments present in the
+library from that gene.
+</div>
+
+## Sources of Noise - Sequencing Artefacts
+
+<img src="images/SequencingArtefacts.png" class="centerimg" style="width: 75%">
+
 ## Capturing Variance - Replication
 
 ### Biological Replication
@@ -328,6 +353,22 @@ Replicates are from the same individual but processed separately
 <div style="width: 45%;
             float: right;">
 <img src="images/TechRep.jpg" class="centerimg" style="width: 55%">
+</div>
+
+## More Depth or More Reps? {#less_space_after_title}
+
+<div><br></div>
+
+<img src="images/DepthvReps.jpg" class="centerimg" style="width: 60%">
+
+<div style="text-align: right;">
+    Liu et al. (2014) Bioinformatics
+</div>
+
+##
+
+<div style="text-align: center; margin-top: 30%">
+<span style="color: #2e3192; font-size: 80px">**Thank you**</span>
 </div>
 
 ## Controlling batch effects
@@ -392,11 +433,70 @@ Replicates are from the same individual but processed separately
 
 <img src="images/PlateGood.svg" class="centerimg" style="width: 40%">
 
+
+<!--
 ## Controlling batch effects
 
 ### Multiplexing
 
 <img src="images/multiplexing.jpg" class="centerimg" style="width: 65%">
+-->
+
+## Alignment
+
+<img src="images/splicing.svg" class="centerimg" style="width: 75%">
+
+<div>
+* RNA does not contain the introns
+
+* When aligning to the genome we need to use a splice-aware aligner and provide gene definitions (GTF) e.g.:
+
+    * HISAT2 (uses Bowtie2)
+    * Star
+    * Or pseudoaligners e.g. Salmon or Kallisto
+</div>
+
+## Counting/Summarisation
+
+<img src="images/Counting.png" class="centerimg" style="width: 75%">
+
+<div style="width: 30%; 
+    float: left;
+    border-style: solid; 
+    border-width: 1px;
+    border-radius: 25px; 
+    padding: 20px; 
+    margin-right: 10%;
+    margin-left: 10%;">
+<span style="color: #2e3192">**Genome-based features**</span>
+
+* Exon or gene boundaries
+
+* Isoform structures
+
+* Gene multireads
+
+</div>
+
+<div style="width: 30%; 
+    float: left; 
+    border-style: solid; 
+    border-width: 1px;
+    border-radius: 25px; 
+    padding: 20px;">
+<span style="color: #2e3192">**Transcript-based features**</span>
+
+* Transcript assembly
+
+* Novel structures
+
+* Isoform multireads
+
+</div>
+
+<div style="clear: both; text-align: center; padding: 20px">
+**HTSeq or Subread**
+</div>
 
 ## Differential Gene Expression Analysis Workflow {#less_space_after_title}
 
