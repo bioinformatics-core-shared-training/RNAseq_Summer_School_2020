@@ -224,8 +224,6 @@ plot(rowMeans(countdata), rowSds(countdata),
 
 <p>&nbsp;</p>
 <p>&nbsp;</p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
 
 ### Data transformation 
 To avoid problems posed by raw counts, raw reads can be transformed.
