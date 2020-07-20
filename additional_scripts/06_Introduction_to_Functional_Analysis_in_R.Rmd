@@ -1,0 +1,82 @@
+---
+title: "Introduction to Gene Set testing in R"
+subtitle: "CRUK Summer School 2020"
+author: "Ashley Sawle"
+date: "July 2020"
+output:
+  ioslides_presentation:
+    css: stylesheet.css
+    logo: images/crukcc-transparent-small.png
+    smaller: yes
+    widescreen: yes
+  beamer_presentation: default
+  slidy_presentation: default
+---
+
+## Differential Gene Expression Analysis Workflow {#less_space_after_title}
+
+<div style="line-height: 50%;"><br></div>
+
+<img src="images/workflow_3Day.svg" class="centerimg" style="width: 60%; margin-top: 60px;">
+<!-- <img src="images/workflow.svg" class="centerimg" style="width: 60%;"> -->
+
+## Gene Set testing
+
+There are many approaches to searching for biological meaning in the results
+of differential expression analysis.
+
+Commonly we look to see if the differentially expressed genes tend to relate
+to specific pathways or ontological groups of genes.
+
+We will look at two methods of doing this:
+
+* Over Representation Analysis (ORA)
+
+* Gene Set Enrichment Analysis (GSEA)
+
+## Gene Set testing
+
+Common sources of Gene Sets:
+
+* KEGG pathways
+
+* Gene Ontologies
+
+* Reactome
+
+* MSigDB (GSEA)
+
+* Manually curated gene lists
+
+## Over Representation Analysis - Method
+
+* This method tests whether genes in specific pathway are present in a subset of 
+  genes of interest in our data more than expected.
+
+* The genes of interest could be e.g. statistically significant 
+  genes or a cluster of genes from hierachical or k-means clustering.
+  
+* Given the ratio of genes in the pathway to genes not in the pathway, is the
+  number of genes in the pathway and in our subset statistically unlikely by 
+  chance.
+
+<img src="images/OverRepresentationAnalysis.svg" class="centerimg" style="width: 90%; margin-top=10px">
+
+## Over Representation Analysis - Method
+
+Genes in the experiment are split in two ways:
+  
+* annotated to the pathway or not
+* differentially expressed or not
+
+Contingency table:
+  
+<img src="images/ContingencyTable.svg" class="centerimg" style="width: 45%">
+
+* Analysis with the hypergeometric/fishers exact test
+
+
+
+
+
+
