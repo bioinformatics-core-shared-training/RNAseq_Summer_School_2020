@@ -21,16 +21,16 @@ library(tidyverse)
 load("../Robjects/DE.RData")
 ```
 
+## Exercise 1 - Retrieve the full annotation
 
-## Retrieve full annotation
+> So far we have retrieved the annotation for just 1000 genes, but we need 
+> annotations for the entire results table.
+>
+> A reminder of the code we have used so far:
 
-> ### Challenge 1 {.challenge}
-
-> A reminder of the code we ran:
-
-```
+```{r eval=FALSE}
 # lets set it up
-ourCols <- c("SYMBOL", "GENEID", "ENTREZID")
+ourCols <- c("GENEID", "SYMBOL", "ENTREZID")
 ourKeys <- rownames(resLvV)[1:1000]
 
 # run the query
@@ -40,40 +40,51 @@ annot <- AnnotationDbi::select(EnsDb.Mmusculus.v79,
                 keytype="GENEID")
 ```
 
-> That was just 1000 genes. We need annotations for the entire results table.
->   
-> (a) Run the same query using all of the genes in our results table (`resLvV`)  
+> (a) Run the same query using all of the genes in our results table (`resLvV`),
+> and this time include the biotype of the genes too. Hint: You can find the 
+> name of the column for this by running `columns(EnsDb.Mmusculus.v79)`
 >
-> (b) Can we also have the biotype of our genes too? Hint: You can find the name of the column for this by running columns(EnsDb.Mmusculus.v79)
+> (b) How many Ensembl genes have multipe Entrez IDs associated with them?
 >
-> (c) How many Ensembl genes have multipe Entrez IDs associated with them?
+> (c) Are all of the Ensembl gene IDs annotated? If not, why do you think this 
+> is?
 
+```{r solutionChallenge1code, message=FALSE, warnings=FALSE}
 
-```{r solutionChallenge1code, eval=FALSE, message=FALSE, warnings=FALSE}
+# (a)
 
-# lets set it up
-ourCols <- c("SYMBOL", "GENEID", "ENTREZID", "GENEBIOTYPE")
+# use all of the genes
 ourKeys <- rownames(resLvV)
 
+# Include the biotype
+columns(EnsDb.Mmusculus.v79)
+
+## column 6 is "GENEBIOTYPE"
+ourCols <- c("GENEID", "SYMBOL", "ENTREZID", "GENEBIOTYPE")
+
 # run the query
-annot <-AnnotationDbi::select(EnsDb.Mmusculus.v79, 
+annot <- AnnotationDbi::select(EnsDb.Mmusculus.v79, 
                 keys=ourKeys, 
-                columns=ourCols, 
+                columns=ourCols,
                 keytype="GENEID")
-# multiple EntrezIDs
-multiples <- annot %>%
-  add_count(GENEID) %>%  
-  dplyr::filter(n>1)
 
-length(unique(multiples$SYMBOL))
+# (b)
+annot %>%  
+    add_count(GENEID) %>%  
+    dplyr::filter(n>1) %>% 
+    distinct(GENEID) %>%
+    count()
 
+# (c)
+dim(annot)
+length(ourKeys)
 ```
 
 > ### Challenge 2 {.challenge}
 
 If you haven't already make sure you load in our data and annotation. Then shrink the values. You can copy and paste the code below.
 
-```
+```{r}
 # First load data and annotations
 load("../Robjects/DE.RData")
 load("../Robjects/Ensembl_annotations.RData")
@@ -92,28 +103,14 @@ shrinkLvV <- as.data.frame(ddsShrink) %>%
 >
 > (a) Create a new column of -log10(pvalue) values in shrinkLvV
 >
-> (b) Create a plot with points coloured by pvalue < 0.05 similar to how we did in the MA plot
+> (b) Create a plot with points coloured by FDR < 0.05 similar to how we did in the MA plot
 
 
 ```{r volcanoPlot, fig.height=5, fig.width=7}
-# First load data and annotations
-load("../Robjects/DE.RData")
-load("../Robjects/Ensembl_annotations.RData")
-
-#Shrink our values
-ddsShrink <- lfcShrink(ddsObj, coef="Status_lactate_vs_virgin")
-shrinkLvV <- as.data.frame(ddsShrink) %>%
-    rownames_to_column("GeneID") %>% 
-    left_join(ensemblAnnot, "GeneID") %>% 
-    rename(logFC=log2FoldChange, FDR=padj)
-
-# first remove the filtered genes (FDR=NA) and create a -log10(FDR) column
-filtTab <- shrinkLvV %>% 
-    filter(!is.na(FDR)) %>% 
-    mutate(`-log10(FDR)` = -log10(FDR))
-
-ggplot(filtTab, aes(x = logFC, y=`-log10(FDR)`)) + 
-    geom_point(aes(colour=FDR < 0.05), size=1)
+shrinkLvV %>% 
+    mutate(`-log10(pvalue)` = -log10(pvalue)) %>% 
+    ggplot(aes(x = logFC, y=`-log10(pvalue)`)) + 
+      geom_point(aes(colour=FDR < 0.05), size=1)
 ```
 
 
