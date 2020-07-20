@@ -197,13 +197,12 @@ important to assess the quality of our data.
 
 Although, for differential expression calculations we use raw reads, for all the visualization purposes we use transformed counts.
 
-* Why not raw counts? 
-
-  * Two issues 
+Why not raw counts? Two issues:
   
     * Raw counts range is very high 
     
-    * Variance increases with mean gene expression, this has impact on assessing the relationships.
+    * Variance increases with mean gene expression, this has impact on assessing 
+      the relationships.
 
 ```{r raw_range}
 range(countdata)
@@ -376,8 +375,6 @@ autoplot(pcDat,
 > ### Discussion
 
 What does the PCA plot tell us?
-
-Go to www.menti.com and use the code 62 87 48 to let us know what you think, in a few words.
 
 <!-- amount and source of variation, sample swap, interaction -->
 
