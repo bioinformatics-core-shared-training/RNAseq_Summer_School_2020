@@ -5,8 +5,6 @@ date: '`r format(Sys.time(), "Last modified: %d %b %Y")`'
 output:
   html_document:
     toc: yes
-  html_notebook:
-    toc: yes
 minutes: 300
 layout: page
 subtitle: Gene Set Testing for RNA-seq
@@ -47,15 +45,15 @@ ie pathway A is enriched in our diff exp gene list
 This method tests whether genes in a pathway are present in a subset of our data
 more than expected (explanations derived from the [clusterProfiler manual](https://yulab-smu.github.io/clusterProfiler-book/index.html)).
 
-Genes is the experiment are split in two ways:
+Genes in the experiment are split in two ways:
 
 * annotated to the pathway or not
 * differentially expressed or not
 
-Contingency table with:
+We can then create a contingency table with:
 
-* rows: in pathway or not
-* columns: differentially expressed or not
+* rows: genes in pathway or not
+* columns: genes differentially expressed or not
 
 Example:
 
@@ -79,10 +77,10 @@ For a given pathway:
 * n: number of differentially expressed genes
 * k: number of differentially expressed genes that are annotated to the pathway
 
-Significance can be assessed with a the hypergeometric distribution:
+Significance can then be assessed with a the hypergeometric distribution:
 
 <!-- over-representation p-value -->
-![](images/overRepPvalHyperGeoFormula.png)
+![](../images/overRepPvalHyperGeoFormula.png)
 
 The test above is identical to the one-tailed Fisher's exact test.
 
@@ -90,6 +88,11 @@ The test above is identical to the one-tailed Fisher's exact test.
 fisher.test(d, alternative = "greater")
 ```
 
+To save time and effort there are a number of packages that make applying this 
+test to a large number of gene sets simpler, and which will import gene lists 
+for testing from various sources.
+
+Today we will use `clusterProfiler`.
 
 <!--
 https://yulab-smu.github.io/clusterProfiler-book/index.html
@@ -109,7 +112,7 @@ library(clusterProfiler)
 search_kegg_organism('mmu', by='kegg_code')
 ```
 
-## KEGG enrichment analysis
+### KEGG enrichment analysis
 
 The input for the KEGG enrichment is list of gene IDs for significant genes. 
 
@@ -120,40 +123,46 @@ analysis for the LvV contrast.
 load("Robjects/Annotated_Results_LvV.RData")
 ```
 
-We will only use genes with an absolute fold change greater than 2.
+We will only use genes that have an adjusted p-value (FDR) of less than 0.04 and
+an absolute fold change greater than 2. We need to remember to eliminate genes
+with missing values in the FDR as a result of the independent filtering by
+DESeq2.
 
-For this tool we need to use Entrez IDs, so we will eliminate genes with no such ID
-by filtering on missing values in 'Entrez'.
+For this tool we need to use Entrez IDs, so we will need to eliminate genes with 
+missing values in 'Entrez'. We also 
 
-```{r enrichKEGG}
+```{r enrichKEGG, include=FALSE}
 sigGenes <- shrinkLvV %>% 
-    filter(FDR < 0.05 & !is.na(FDR) & 
-               abs(logFC) > 1 & 
-               !is.na(Entrez)) %>% 
+    drop_na(Entrez, FDR) %>%
+    filter(FDR < 0.05 & abs(logFC) > 1) %>% 
     pull(Entrez)
 
 kk <- enrichKEGG(gene = sigGenes, organism = 'mmu')
 head(kk, n=10)
+```
+
+```{r echo=FALSE}
 head(kk, n=10) %>% as_tibble()
 ```
 
-## Visualise a pathway
 
-### In a browser
+#### Visualise a pathway
+
+##### In a browser
 
 `clusterProfile` has a function `browseKegg` that allows you to view the KEGG
-pathway with the genes colours in in your browser.
+pathway in in your browser with the genes that are in our gene highlighted.
 
 ```{r browseKegg}
 browseKEGG(kk, 'mmu03320')
 ```
 
-### As a file
+##### As a file
 
 The package `pathview` [@Luo2013] can be used to generate figures of KEGG 
 pathways. 
 
-One advantage over `clusterProfiles` browser method is that the genes are 
+One advantage over the `clusterProfiler` browser method is that the genes can be
 coloured according to their fold change levels in our data. To do this we need
 to pass `pathview` a named vector of fold change data (actually you could
 colour by any numeric vector, e.g. p-value).
@@ -172,7 +181,7 @@ pathview(gene.data = logFC,
 
 mmu03320.pathview.png:
 
-![mmu03320 - PPAR signaling pathway](results/mmu03320.pathview.png)
+![mmu03320 - PPAR signaling pathway](../images/mmu03320.pathview.png)
 
 > ## Challenge 1 {.challenge}
 >
@@ -188,159 +197,35 @@ mmu03320.pathview.png:
 Gene Set Enrichment Analysis (GSEA) identifies gene sets that are related to the
 difference of interest between samples [@Subramanian15545].
 
-The software is distributed by the [Broad Institute](http://software.broadinstitute.org/gsea/index.jsp)
+The software is distributed by the 
+[Broad Institute](http://software.broadinstitute.org/gsea/index.jsp)
 and is freely available for use by academic and non-profit organisations.
 The Broad also provide a number of very well curated gene sets
 for testing against your data - the [Molecular Signatures Database (MSigDB)](http://software.broadinstitute.org/gsea/msigdb/index.jsp). 
 These are collections of human genes, however. Fortunately, these lists
 have been translated to mouse equivalents by the Walter+Eliza Hall Institute
-Bioinformatics service and made available for [download](http://bioinf.wehi.edu.au/software/MSigDB/).
+Bioinformatics service and made available for 
+[download](http://bioinf.wehi.edu.au/software/MSigDB/).
 
-## Concept
-
-We will look into random walk, distributions and the Kolomogorov-Smirnoff test
-whose concept GSEA uses (inspired from [this course](https://www.coursera.org/lecture/network-biology/gene-set-enrichment-analysis-gsea-preliminaries-C4GxN)).
-
-### Random walks
-
-A random walk is a succession of random steps along a mathematical path.
-of the distance from 0.
-
-```{r}
-# a path 
-plot.new()
-plot.window(xlim=c(-10,10), ylim=c(-5,5))
-axis(side=1)
-```
-
-Starting at 0, we will take a step randomly in either direction and keep track
-of the distance from 0.
-
-A short walk:
-
-```{r}
-# random walk
-rn <- rnorm(n=10,m=0,sd=0.5)
-rwalk <- cumsum(sign(rn))
-plot(rwalk, type="l", ylim=c(-5,5))
-abline(h=0)
-```
-
-A longer walk:
-
-```{r}
-rn <- rnorm(n=1000,m=0,sd=0.5)
-rwalk <- cumsum(sign(rn))
-plot(rwalk, type="l")
-abline(h=0)
-```
-
-We can force the walk to end at 0, by having the same number of steps in both
-directions.
-
-```{r}
-# draw observations
-rn <- rnorm(n=1000,m=0,sd=0.5)
-# find indices of positive values (steps to the right)
-whichPos <- which(rn >= 0)
-# find indices of negative values (steps to the left)
-whichNeg <- which(rn < 0)
-# check number of steps in each direction
-length(whichPos)
-length(whichNeg)
-# concat indices for the same number of steps in each direction, eg 400 steps each
-rn2 <- c(rn[whichNeg][1:400], rn[whichPos][1:400])
-# re-shuffle
-rn2 <- sample(rn2)
-# compute walk
-rwalk <- cumsum(sign(rn2))
-# plot
-plot(rwalk, type="l")
-abline(h=0)
-```
-
-The probability of observing the maximum distance observed here can be computed.
-
-### Distributions
-
-A brief description of probability distributions. We will use a example of a
-variable following a Normal distribution of mean 0 and standard deviation 0.5.
-
-```{r}
-par(mfrow = c(1, 2))
-    
-# probability density function
-
-xx <- seq(-2, 2, length=100)
-plot(xx, dnorm(xx, mean=0, sd=0.5), type='l')
-
-# cumulative distribution function
-
-cumulative <- pnorm(xx, 0, 1)
-plot(xx, cumulative, type='l')
-```
-
-### Kolmogorov-Smirnov test
-
-The Kolmogorov-Smirnov (KS) test of goodness-of-fit tests whether the observed data is consistent
-with a given cumulative density function (CDF).
-
-To illustrate the method, we will keep the random variable following the Normal distribution. We will make some observations and plot both the observed and expected CDFs.
-
-Because the observed data was obtained with a finite sample, the observed CDF will differ from the theoretical CDF by some random scatter.
-
-The KS test considers that if there is no difference between the two CDFs then that difference should be a
-random walk, with both ends fixed at 0. For which we can compute the probability
-of observing a given distance.
-
-Example:
-
-```{r}
-rn <- rnorm(n=20, m=0, sd=0.5)
-X <- rn
-X <- sort(X)
-e_cdf <- 1:length(X) / length(X)
-plot(X, e_cdf, type = "s", xlim=c(-1,1), ylim=c(0,1))
-
-xx <- seq(min(X), max(X), length=20)
-cumulative <- pnorm(xx, 0, 0.5)
-lines(xx, cumulative)
-```
-
-Another example, where the two distributions differ. The random variable now
-follows a Normal distribution of mean -0.5 (and standard deviation still at
-0.5).
-
-```{r}
-rn <- rnorm(n=20, m=-0.3, sd=0.5)
-X <- rn
-X <- sort(X)
-e_cdf <- 1:length(X) / length(X)
-plot(X, e_cdf, type = "s", xlim=c(-1,1), ylim=c(0,1))
-
-xx <- seq(min(X), max(X), length=20)
-cumulative <- pnorm(xx, 0, 0.5)
-lines(xx, cumulative)
-```
-
-## GSEA
+## Method
 
 The analysis is performed by:
 
-- (i) ranking all genes in the data set
-- (ii) identifying the rank positions of all members of the gene set in the 
+1. ranking all genes in the data set  
+2. identifying the rank positions of all members of the gene set in the 
 ranked data set
-- (iii) calculating an enrichment score (ES) that represents the difference 
+3. calculating an enrichment score (ES) that represents the difference 
 between the observed rankings and that which would be expected assuming a random 
 rank distribution.
  
 The article describing the original software is available 
 [here](http://www.pnas.org/content/102/43/15545.long), while this [commentary on GSEA](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1266131/) provides a shorter description.
 
-![](images/gseaArticleFig1.png)
+![](../images/gseaArticleFig1.png)
 
 We will use the [`fgsea`](http://www.bioconductor.org/packages/release/bioc/vignettes/fgsea/inst/doc/fgsea-tutorial.html) 
-package [@Sergushichev2016] that implements the same algorithm in R. 'fgsea' stands for' "fast preranked gene set enrichment analysis (GSEA)".
+package [@Sergushichev2016] that implements the same algorithm in R. 
+'fgsea' stands for' "fast preranked gene set enrichment analysis (GSEA)".
 
 ```{r fgsea}
 library(fgsea)
@@ -348,7 +233,7 @@ library(fgsea)
 
 ## Ranking Data
 
-We need to provide `fgsea` a vector containing numeric data by which it should 
+We need to provide `fgsea` with a vector containing numeric data by which it should 
 rank the genes. To start with we will simply use a rank based on their fold 
 change. We do not need to rank the genes ourselves, `fgsea` will do this based
 on the data we provide.
@@ -366,19 +251,24 @@ head(rankData)
 
 ## Load pathways
 
+We will load the MSigDB Hallmark gene set. The pathways RData file loads a new 
+object call Mm.H (`H` for **H**allmark gene set), which is a list of gene sets. 
+The names of the vectors in list are the names of gene sets and each vector 
+contains Entrez IDs for the genes in the gene set.
+
 ```{r loadPathways}
 load("Robjects/mouse_H_v5.RData")
-pathwaysH <- Mm.H
+head(names(Mm.H))
+head(Mm.H[[1]])
 ```
 
 ## Conduct analysis
 
 ```{r runFgsea}
-fgseaRes <- fgsea(pathwaysH, 
+fgseaRes <- fgsea(Mm.H, 
                   rankData, 
                   minSize = 15, 
-                  maxSize = 500, 
-                  nperm = 1000)
+                  maxSize = 500)
 ```
 
 The warning produced indicates that there are few genes that have the same fold
@@ -405,7 +295,7 @@ fgseaRes %>%
 ## Enrichment score plot
 
 ```{r gseaEnrichmentPlot}
-plotEnrichment(pathwaysH[["HALLMARK_ESTROGEN_RESPONSE_EARLY"]], rankData)
+plotEnrichment(Mm.H[["HALLMARK_ESTROGEN_RESPONSE_EARLY"]], rankData)
 ```
 
 Remember to check the [GSEA 

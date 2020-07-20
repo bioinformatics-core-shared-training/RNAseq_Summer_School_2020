@@ -13,17 +13,16 @@ layout: page
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(fgsea)
-library(goseq)
 library(clusterProfiler)
 library(pathview)
 ```
 
 ```{r prepareData, include=FALSE}
-load("Robjects/Annotated_Results_LvV.RData")
+load("../Robjects/Annotated_Results_LvV.RData")
 # fgsea data
 gseaDat <- filter(shrinkLvV, !is.na(Entrez))
 ranks <- gseaDat$logFC
-load("Robjects/mouse_H_v5.RData")
+load("../Robjects/mouse_H_v5.RData")
 pathwaysH <- Mm.H
 # Kegg data
 sigGenes <- shrinkLvV$Entrez[ shrinkLvV$FDR < 0.01 & 
@@ -31,14 +30,16 @@ sigGenes <- shrinkLvV$Entrez[ shrinkLvV$FDR < 0.01 &
                               abs(shrinkLvV$logFC) > 1 ]
 sigGenes <- na.exclude(sigGenes)
 kk <- enrichKEGG(gene = sigGenes, organism = 'mmu')
+
+load("../Robjects/mouse_c2_v5.RData")
 ```
 
-### Challenge 1
+### Exercise 1
 
 > 1. Use `pathview` to export a figure for "mmu04060", but this time only
 > use genes that are statistically significant at FDR < 0.01
 
-```{r solution3}
+```{r solution}
 sigGenes <- shrinkLvV$FDR < 0.01 & !is.na(shrinkLvV$FDR)
 
 logFC <- shrinkLvV$logFC[sigGenes]
@@ -52,9 +53,9 @@ pathview(gene.data = logFC,
 
 mmu04060.pathview.png:
 
-![mmu04060 -Cytokine-cytokine receptor interaction](../images/mmu04060.pathview.png)
+![mmu04060 -Cytokine-cytokine receptor interaction](../../images/mmu04060.pathview.png)
 
-### Challenge 2
+### Exercise 2
 
 Another common way to rank the genes is to order by pvalue, but also, sorting
 so that upregulated genes are at start and downregulated at the other - 
@@ -68,17 +69,38 @@ you can do this combining the sign of the fold change and the pvalue.
 > results differ from the ones we got when ranking by the fold change alone?  
 
 ```{r solution1}
+# 1. 
 ranks <- -log10(gseaDat$pvalue) * sign(gseaDat$logFC) # or gseaDat$stat
 names(ranks) <- gseaDat$Entrez  
+head(ranks)
+```
 
+
+```{r solution2, eval=FALSE}
+# 2. Load the object Mm.C2
 load("Robjects/mouse_c2_v5.RData")
-pathwaysC2 <- Mm.c2
+head(names(Mm.c2))
+```
 
-fgseaResC2 <- fgsea(pathwaysC2, ranks, minSize=15, maxSize = 500, nperm=1000)
-head(fgseaResC2[order(padj, -abs(NES)), ], n=10)
+```{r solution2b, echo=FALSE}
+# 2. Load the object Mm.C2
+head(names(Mm.c2))
+```
 
-fgseaResH <- fgsea(pathwaysH, ranks, minSize=15, maxSize = 500, nperm=1000)
-head(fgseaResH[order(padj, -abs(NES)), ], n=20)
+```{r solution3}
+# 3.
+fgseaResC2 <- fgsea(Mm.c2, ranks, minSize=15, maxSize = 500)
+fgseaResC2 %>% 
+    arrange(padj, desc(abs(NES))) %>% 
+    top_n(10, -padj) %>%  
+    as_tibble()
+
+# 4.
+fgseaResH <- fgsea(Mm.H, ranks, minSize=15, maxSize = 500)
+fgseaResH %>% 
+    arrange(padj, desc(abs(NES))) %>% 
+    top_n(10, -padj) %>%  
+    as_tibble()
 ```
 
 
