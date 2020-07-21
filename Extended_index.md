@@ -2,6 +2,8 @@
 <img src="images/CRUK_CC_web.jpg" alt="CRUK Cambdridge Centre" width="200" align="right"/>.  
 **22nd - 28th July 2020: Zoom virtual school, University of Cambridge**
 
+[Main Summer School page](https://bioinformatics-core-shared-training.github.io/cruk-summer-school-2020/)
+
 These files contain some additional information and exercises not included 
 during the taught course.
 
