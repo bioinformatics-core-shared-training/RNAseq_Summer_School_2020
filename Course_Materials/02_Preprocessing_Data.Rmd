@@ -48,9 +48,11 @@ alveolar cell survival*](https://www.nature.com/articles/ncb3117)
 and processed data (counts) can be downloaded from Gene Expression Omnibus 
 database (GEO) under accession number
 [GSE60450](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE60450). Please
-see [Supplementary 
-material](../Supplementary_Materials/S1_Getting_raw_reads_from_SRA.html) for 
-instructions on downloading raw files from SRA and aligning fastq using HISAT2.
+see extended 
+material for 
+instructions on 
+[downloading raw files from SRA](../Supplementary_Materials/S1_Getting_raw_reads_from_SRA.html) 
+and [aligning fastq using HISAT2](../extended_html/C_Alignment_with_HISAT2_practical.html).
 
 This study examines the expression profiles of basal stem-cell enriched cells
 (B) and committed luminal cells (L) in the mammary gland of virgin, pregnant
@@ -73,7 +75,7 @@ sampleinfo
 The raw reads were aligned using HISAT2 [@Kim2015] to the GRCm38 mouse reference
 genome from Ensembl. featureCounts [@Liao2014] was used to count reads against
 the Ensembl gene annotation and generate a counts matrix (as described in 
-[Section 1](E_Read_Counts_with_Subread.practical.html)).
+[the previous session](E_Read_Counts_with_Subread.practical.html)).
 
 First we need to read the data into R from the file in the *data* directory.
 
@@ -109,7 +111,7 @@ We will encounter a few more `dplyr` commands during the course, we will explain
 their use as we come to them.
 
 If you are familiar with R but not `dplyr` or the `tidyverse` then we have a very
-brief introduction [here](02a_A_brief_intro_to_dplyr.html). A more detailed 
+brief introduction [here](../extended_html/02a_A_brief_intro_to_dplyr.html). A more detailed 
 introduction can be found in our [online R course](https://bioinformatics-core-shared-training.github.io/r-intro/week4.html)
 
 ## Format the data
