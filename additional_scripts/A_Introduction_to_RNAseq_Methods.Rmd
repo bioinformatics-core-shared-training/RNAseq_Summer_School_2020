@@ -146,11 +146,8 @@ output:
 * Be amenable to statisical analysis
 
 * Be reproducible
--->
 
-## Designing the right experiment
-
-### Practical considerations for RNAseq
+## Practical considerations for RNAseq
 
 * Coverage
 
@@ -158,9 +155,9 @@ output:
 
 * Library preparation method
 
-## Designing the right experiment
+-->
 
-### Coverage: How many reads do we need?
+## Coverage: How many reads do we need?
 
 <div style="line-height: 50%;"><br></div>
 The coverage is defined as:
@@ -181,9 +178,9 @@ the experiment and the nature of the RNA sample.
 * Targeted RNA expression requires fewer reads. 
 * miRNA-Seq or Small RNA Analysis require even fewer reads.
 
-## Designing the right experiment
+## Read length
 
-### Read length: long or short reads? Paired or Single end?
+### Long or short reads? Paired or Single end?
 
 The answer depends on the experiment:
 
@@ -191,6 +188,8 @@ The answer depends on the experiment:
 * kmer-based quantification of Gene Expression (Salmon etc.) - benefits from PE.
 * Transcriptome Analysis – longer paired-end reads (such as 2 x 75 bp).
 * Small RNA Analysis – short single read, e.g. SE50 - will need trimming.
+
+<!--
 
 ## Library preparation
 
@@ -273,6 +272,8 @@ Poly-A transcripts + Other mRNAs e.g.:
 
 <img src="images/IlluminaLibraryPrep2.png" class="centerimg" style="width: 85%">
 
+-->
+
 ## Sources of Noise
 
 <img src="images/Noise.svg" style="width: 65%; margin-left: 23%">
@@ -280,7 +281,6 @@ Poly-A transcripts + Other mRNAs e.g.:
 ## Sources of Noise - Sampling Bias
 
 <img src="images/SamplingBias.svg" class="centerimg" style="width: 60%">
-
 
 ## Sources of Noise - Transcript Length
 
@@ -363,12 +363,6 @@ Replicates are from the same individual but processed separately
 
 <div style="text-align: right;">
     Liu et al. (2014) Bioinformatics
-</div>
-
-##
-
-<div style="text-align: center; margin-top: 30%">
-<span style="color: #2e3192; font-size: 80px">**Thank you**</span>
 </div>
 
 ## Controlling batch effects
