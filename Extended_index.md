@@ -1,7 +1,6 @@
 # Analysis of Bulk RNAseq data - Extended Materials
-#### Bioinformatics Training, Craik-Marshall Building, Downing Site, University of Cambridge
-
-![](images/CRUK_Cambridge_Major Centre logo.jpg)
+<img src="images/CRUK_CC_web.jpg" alt="CRUK Cambdridge Centre" width="200" align="right"/>.  
+**22nd - 28th July 2020: Zoom virtual school, University of Cambridge**
 
 These files contain some additional information and exercises not included 
 during the taught course.
