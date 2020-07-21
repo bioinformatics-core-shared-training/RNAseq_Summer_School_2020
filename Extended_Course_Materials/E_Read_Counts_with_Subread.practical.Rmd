@@ -17,7 +17,7 @@ bibliography: ref.bib
 The raw reads, in fastq files, have been aligned using HISAT2. The alignment
 process produces a set of BAM files, where each file contains the read
 alignments for each library. The BAM files containing the aligned reads can be
-found in the **`data`** directory under the **`CourseMaterials`** 
+found in the **`bam`** directory under the **`CourseMaterials`** 
 
 ## Counting
 
@@ -40,7 +40,7 @@ count against.
 
 GTF/GFF files define genomic regions covered by different types of genomic
 features, e.g. genes, transcripts, exons, or UTRs. The necessary GTF is already
-in the directory `Course_Materials/data`. Instruction on where and how to
+in the directory `Course_Materials/references`. Instruction on where and how to
 download the GTF can be found in the [Supplementary
 Materials](../Supplementary_Materials/S1_Getting_raw_reads_from_SRA.html).
 
@@ -149,7 +149,7 @@ before but now the folowing columns contain the counts for all of the samples.
 head counts/GSE60450_Lactation.chr15.featureCounts
 ```
 
-### Exercise 1
+### Challenge
 >
 > 1. Redo the counting for your sorted bam over the exons, rather than the
 >    genes. Use `featureCounts --help` to find the option you need to use. Make
