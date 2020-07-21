@@ -128,7 +128,7 @@ quartile
 
 <div style="line-height: 50%;"><br></div>
 
-<img src="images/scaling.svg" class="centerimg" style="width: 40%">
+<img src="images/scaling.svg" class="centerimg" style="width: 50%">
 
 ## DESeq2 analysis workflow
 
@@ -293,6 +293,7 @@ legend("topright", legend = leg, pt.bg = cols, pch=21, bty="n")
 
 <img src="images/dispersion.png" style="width: 38%; margin-top: 40px">
 
+<!--
 
 ## Differential Expression - worrying dispersion plot examples
 
@@ -303,6 +304,8 @@ legend("topright", legend = leg, pt.bg = cols, pch=21, bty="n")
 <div style="text-align: right;">
     Bad dispersion plots from: https://github.com/hbctraining/DGE_workshop
 </div>
+
+-->
 
 ## Differential Expression - linear models
 
