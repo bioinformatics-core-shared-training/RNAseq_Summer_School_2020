@@ -5,7 +5,7 @@ date: "September 2019"
 output:
   ioslides_presentation:
     css: stylesheet.css
-    logo: images/CRUK_Cambridge_Institute.png
+    logo: images/crukcc-transparent-small.png
     smaller: yes
     widescreen: yes
   beamer_presentation: default
@@ -91,6 +91,4 @@ GTF for the mouse GRCm38 genome assembly.
 * **`-a`** - the gene annotation reference file
 * **`-o`** - the name for the output files
 
-
-# And now onto the Exercise...
 
