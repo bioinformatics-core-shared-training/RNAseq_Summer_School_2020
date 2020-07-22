@@ -382,22 +382,22 @@ summary {
 <div id="start-coding-15mins" class="section level2">
 <h2>Start Coding ~ 15mins</h2>
 <p>have this copy pasted in at start</p>
-</div>
-<div id="read-the-sample-information-into-a-data-frame" class="section level1">
-<h1>Read the sample information into a data frame</h1>
-<p>sampleinfo &lt;- read_tsv(“results/SampleInfo_Corrected.txt”)</p>
-</div>
-<div id="read-the-data-into-r" class="section level1">
-<h1>Read the data into R</h1>
-<p>seqdata &lt;- read_tsv(“data/GSE60450_Lactation.featureCounts”, comment = “#”)</p>
-</div>
-<div id="transform-the-data-to-matrix-of-counts" class="section level1">
-<h1>Transform the data to matrix of counts</h1>
-<p>countdata &lt;- as.data.frame(seqdata) %&gt;% column_to_rownames(“Geneid”) %&gt;% # turn the geneid column into rownames rename_all(str_remove, “.bam”) %&gt;% # remove the “.bam” from the column names select(sampleinfo$Sample) %&gt;% # keep sample columns using sampleinfo as.matrix()</p>
-</div>
-<div id="filter-the-data-to-remove-genes-with-few-counts" class="section level1">
-<h1>filter the data to remove genes with few counts</h1>
-<p>keep &lt;- rowSums(countdata) &gt; 5 countdata &lt;- countdata[keep,]</p>
+<pre class="r"><code># Read the sample information into a data frame
+#sampleinfo &lt;- read_tsv(&quot;results/SampleInfo_Corrected.txt&quot;)
+
+# Read the data into R
+#seqdata &lt;- read_tsv(&quot;data/GSE60450_Lactation.featureCounts&quot;, comment = &quot;#&quot;)
+
+# Transform the data to matrix of counts
+#countdata &lt;- as.data.frame(seqdata) %&gt;% 
+    #column_to_rownames(&quot;Geneid&quot;) %&gt;% # turn the geneid column into rownames
+    #rename_all(str_remove, &quot;.bam&quot;) %&gt;% # remove the &quot;.bam&quot; from the column names
+    #select(sampleinfo$Sample) %&gt;% # keep sample columns using sampleinfo
+    #as.matrix()
+
+# filter the data to remove genes with few counts
+#keep &lt;- rowSums(countdata) &gt; 5
+#countdata &lt;- countdata[keep,]</code></pre>
 <p>Now that we are happy that the quality of the data looks good, proceed</p>
 <ul>
 <li><p>clean environment</p></li>
@@ -477,9 +477,9 @@ ddsObj.raw &lt;- DESeqDataSetFromMatrix(countData = countdata,
 <pre><code>## converting counts to integer mode</code></pre>
 <p>Gives a warning, don’t worry</p>
 </div>
+</div>
 <div id="mini-break-5-mins---save-script" class="section level2">
 <h2>MINI BREAK 5 mins - save script</h2>
-</div>
 </div>
 <div id="differential-expression-analysis-with-deseq2" class="section level1">
 <h1>Differential expression analysis with DESeq2</h1>
@@ -494,8 +494,8 @@ ddsObj.raw &lt;- DESeqDataSetFromMatrix(countData = countdata,
 <h3>Dispersion</h3>
 <p>for each gene we need mean and dispersion (which relates mean to variance)</p>
 </div>
-<div id="applying-gm-and-running-wald-test" class="section level3">
-<h3>Applying GM and running Wald test</h3>
+<div id="applying-glm-and-running-wald-test" class="section level3">
+<h3>Applying GLM and running Wald test</h3>
 <p>test each gene between the sample groups</p>
 </div>
 </div>
@@ -822,6 +822,39 @@ resLvB</code></pre>
 <p>Use the <code>contrast</code> argument to extract the results table for “pregnant v lactate”.</p>
 </blockquote>
 <p>SHOW HELP PAGE</p>
+<pre class="r"><code>resPvL &lt;- results(ddsObj, 
+                  alpha=0.05,
+                  contrast = c(&quot;Status&quot;, &quot;pregnant&quot;, &quot;lactate&quot;))
+resPvL</code></pre>
+<pre><code>## log2 fold change (MLE): Status pregnant vs lactate 
+## Wald test p-value: Status pregnant vs lactate 
+## DataFrame with 25369 rows and 6 columns
+##                       baseMean log2FoldChange     lfcSE      stat    pvalue
+##                      &lt;numeric&gt;      &lt;numeric&gt; &lt;numeric&gt; &lt;numeric&gt; &lt;numeric&gt;
+## ENSMUSG00000051951  194.697167      -1.660991  0.758524 -2.189766 0.0285412
+## ENSMUSG00000102331    0.557693      -1.059750  2.714966 -0.390336 0.6962878
+## ENSMUSG00000025900    3.838125       2.280323  1.306916  1.744813 0.0810174
+## ENSMUSG00000025902   52.523551       0.305865  0.420506  0.727374 0.4669970
+## ENSMUSG00000098104    0.686876      -1.698862  1.839140 -0.923726 0.3556289
+## ...                        ...            ...       ...       ...       ...
+## ENSMUSG00000094915    0.608461      1.4117512  2.277011  0.620002  0.535257
+## ENSMUSG00000079808    6.435068      0.3737542  0.846711  0.441419  0.658910
+## ENSMUSG00000095041 1685.461318     -0.1645651  0.119998 -1.371398  0.170251
+## ENSMUSG00000063897  443.698776      0.0197569  0.150027  0.131689  0.895230
+## ENSMUSG00000095742  665.855337      0.2752024  0.357854  0.769036  0.441872
+##                         padj
+##                    &lt;numeric&gt;
+## ENSMUSG00000051951  0.101342
+## ENSMUSG00000102331        NA
+## ENSMUSG00000025900  0.214588
+## ENSMUSG00000025902  0.669989
+## ENSMUSG00000098104        NA
+## ...                      ...
+## ENSMUSG00000094915        NA
+## ENSMUSG00000079808  0.810345
+## ENSMUSG00000095041  0.354767
+## ENSMUSG00000063897  0.948790
+## ENSMUSG00000095742  0.648449</code></pre>
 </div>
 </div>
 </div>
@@ -922,6 +955,29 @@ Look back at the code at the beginning of Exercise 1 to remind you how to do thi
 <p>Do you think the experimental design is good enough to include the interaction?</p>
 <p>If not, why and how would you change it?</p>
 </blockquote>
+<pre class="r"><code>design &lt;- as.formula(~ CellType * Status)
+ddsObj2.raw &lt;- DESeqDataSetFromMatrix(countData = countdata, 
+                                     colData = sampleinfo,
+                                     design = design)</code></pre>
+<pre><code>## converting counts to integer mode</code></pre>
+<pre><code>## Warning in DESeqDataSet(se, design = design, ignoreRank): some variables in
+## design formula are characters, converting to factors</code></pre>
+<pre class="r"><code># create the simpler model
+design.reduced &lt;- as.formula(~ CellType + Status)
+
+# Compare the two designs
+ddsObjC2 &lt;- DESeq(ddsObj2.raw, test=&quot;LRT&quot;, reduced=design.reduced)</code></pre>
+<pre><code>## estimating size factors</code></pre>
+<pre><code>## estimating dispersions</code></pre>
+<pre><code>## gene-wise dispersion estimates</code></pre>
+<pre><code>## mean-dispersion relationship</code></pre>
+<pre><code>## final dispersion estimates</code></pre>
+<pre><code>## fitting model and testing</code></pre>
+<pre class="r"><code>resCSvCxS &lt;- results(ddsObjC2)
+table(resCSvCxS$padj &lt; 0.05)</code></pre>
+<pre><code>## 
+## FALSE  TRUE 
+## 10839  9119</code></pre>
 <p>9119 genes different</p>
 <p>yes/no - should we use th interaction model?</p>
 <p>yes/no - do you think the design of this experiment is sufficient to assess the interaction?</p>

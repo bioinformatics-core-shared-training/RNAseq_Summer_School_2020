@@ -24,24 +24,24 @@ DESEQ2
 
 have this copy pasted in at start
 
-
+```{r}
 # Read the sample information into a data frame
-sampleinfo <- read_tsv("results/SampleInfo_Corrected.txt")
+#sampleinfo <- read_tsv("results/SampleInfo_Corrected.txt")
 
 # Read the data into R
-seqdata <- read_tsv("data/GSE60450_Lactation.featureCounts", comment = "#")
+#seqdata <- read_tsv("data/GSE60450_Lactation.featureCounts", comment = "#")
 
 # Transform the data to matrix of counts
-countdata <- as.data.frame(seqdata) %>% 
-    column_to_rownames("Geneid") %>% # turn the geneid column into rownames
-    rename_all(str_remove, ".bam") %>% # remove the ".bam" from the column names
-    select(sampleinfo$Sample) %>% # keep sample columns using sampleinfo
-    as.matrix()
+#countdata <- as.data.frame(seqdata) %>% 
+    #column_to_rownames("Geneid") %>% # turn the geneid column into rownames
+    #rename_all(str_remove, ".bam") %>% # remove the ".bam" from the column names
+    #select(sampleinfo$Sample) %>% # keep sample columns using sampleinfo
+    #as.matrix()
 
 # filter the data to remove genes with few counts
-keep <- rowSums(countdata) > 5
-countdata <- countdata[keep,]
-
+#keep <- rowSums(countdata) > 5
+#countdata <- countdata[keep,]
+```
 
 Now that we are happy that the quality of the data looks good, proceed
 
@@ -158,7 +158,7 @@ allows us to normalise between samples and compensate for sequencing depth and c
 
 for each gene we need mean and dispersion (which relates mean to variance)
 
-### Applying GM and running Wald test
+### Applying GLM and running Wald test
 
 test each gene between the sample groups
 
@@ -453,7 +453,7 @@ sum(resLvB$padj < 0.05 & resLvB$log2FoldChange > 0, na.rm = TRUE)
 
 SHOW HELP PAGE
 
-```{r echo=FALSE, include=FALSE}
+```{r}
 resPvL <- results(ddsObj, 
                   alpha=0.05,
                   contrast = c("Status", "pregnant", "lactate"))
@@ -569,7 +569,7 @@ This was simple vs additive, we actually want additive vs interaction, and thats
 >    If not, why and how would you change it?   
 >
 
-```{r eval=FALSE, echo=FALSE, include=FALSE}
+```{r}
 design <- as.formula(~ CellType * Status)
 ddsObj2.raw <- DESeqDataSetFromMatrix(countData = countdata, 
                                      colData = sampleinfo,
