@@ -24,7 +24,7 @@ DESEQ2
 
 have this copy pasted in at start
 
-```{r recap, eval = FALSE}
+
 # Read the sample information into a data frame
 sampleinfo <- read_tsv("results/SampleInfo_Corrected.txt")
 
@@ -41,7 +41,7 @@ countdata <- as.data.frame(seqdata) %>%
 # filter the data to remove genes with few counts
 keep <- rowSums(countdata) > 5
 countdata <- countdata[keep,]
-```
+
 
 Now that we are happy that the quality of the data looks good, proceed
 
@@ -62,9 +62,9 @@ library(DESeq2)
 options(tibble.print_max=3, tibble.print_min=3)
 ```
 
-```{r loadData, eval=FALSE}
+```{r loadData}
 ## load the RData object we created in the previous session
-load("RNAseq/Robjects/preprocessing.RData")
+load("../Course_Materials/Robjects/preprocessing.RData") # not correct path
 ```
 
 Explain and view everything that has been loaded
@@ -330,7 +330,7 @@ rm(res)
 
 If we want a different contrast we can just pass the `results` function the name
 of the design matrix column that encodes it.
-Let's retrieve the results for pregant versus virgin
+Let's retrieve the results for pregnant versus virgin
 
 ```{r resultPvV}
 resPvV_status <- results(ddsObj, 
@@ -348,8 +348,10 @@ sum(resPvV_status$padj < 0.05)
 We need to remove `NA`'s as the genes that were filtered out by DESeq2 have `NA` in the in the `padj` column
 
 ```{r countDEGna}
-sum(resPvV_status$padj < 0.05, na.rm = TRUE)
+sum(resPvV_status$padj < 0.05, na.rm = TRUE) # not many degs but remember we didn't account for celltype
 ```
+
+doesn't seem like many but we haven't accounted for celltype
 
 Let's get the top 100 genes by adjusted p-value
 
@@ -361,7 +363,7 @@ topGenesPvV <- as.data.frame(resPvV_status) %>%
 topGenesPvV
 ```
 
-### Exercise 1
+### Exercise 1 - 1 hr 35 mins - give 20 mins - save script
 
 > So far we have fitted a simple model considering just "Status", but in reality 
 > we want to model the effects of both "Status" and "Cell Type".
@@ -379,42 +381,63 @@ topGenesPvV
 >    so we need to transform the Status into a factor in the sample sheet and 
 >    set "Virgin" to be the first level.
 >   
-> ```{r}
+> 
 > load("Robjects/preprocessing.RData")
 > sampleinfo$Status <- factor(sampleinfo$Status, 
 >                             levels = c("virgin", "pregnant", "lactate"))
-> ```
+> 
 > 
 > 2. Create the model
 > 
-> ```{r eval=FALSE}
+> 
 > design <- as.formula(~ CellType + Status)
-> ```
+> 
 > 
 > 2. Then build the DESeq from the raw data, the sample meta data and the model
 > 
-> ```{r eval=FALSE}
+> 
 > ddsObj.raw <- DESeqDataSetFromMatrix(countData = countdata,
 >                                      colData = sampleinfo,
 >                                      design = design)
-> ```
+>
 > 
 > 3. Run the DESeq2 analysis
 > 
-> ```{r eval=FALSE}
+> 
 > ddsObj <- DESeq(ddsObj.raw)
-> ```
+> 
 > 
 > 4. Extract the default contrast - Lacate v Virgin
 >
-> ```{r eval=FALSE}
+> 
 > resLvV <- results(ddsObj, alpha=0.05)
-> ```
+> 
 > 
 > #### **Challenge 1** {.challenge}
+
+```{r}
+design <- as.formula(~ CellType + Status)
+ddsObj.raw <- DESeqDataSetFromMatrix(countData = countdata, 
+                                     colData = sampleinfo,
+                                     design = design)
+ddsObj <- DESeq(ddsObj.raw)
+resLvV <- results(ddsObj, alpha=0.05)
+```
 >
 > a) Obtain results for luminal vs basal.  Call the new results object `resLvB`.
+
+```{r}
+resultsNames(ddsObj)
+resLvB <- results(ddsObj, alpha=0.05, name="CellType_luminal_vs_basal")
+resLvB
+```
+
 > b) How many significantly upregulated genes are there?
+
+```{r}
+sum(resLvB$padj < 0.05 & resLvB$log2FoldChange > 0, na.rm = TRUE)
+```
+
 >
 > #### **Challenge 2 - Contrasts** {.challenge} 
 >
@@ -428,34 +451,40 @@ topGenesPvV
 > Use the `contrast` argument to extract the results table for "pregnant v
 > lactate".
 
+SHOW HELP PAGE
+
 ```{r echo=FALSE, include=FALSE}
-design <- as.formula(~ CellType + Status)
-ddsObj.raw <- DESeqDataSetFromMatrix(countData = countdata, 
-                                     colData = sampleinfo,
-                                     design = design)
-ddsObj <- DESeq(ddsObj.raw)
-resLvV <- results(ddsObj, alpha=0.05)
+resPvL <- results(ddsObj, 
+                  alpha=0.05,
+                  contrast = c("Status", "pregnant", "lactate"))
+resPvL
 ```
 
-# Should be using the interaction model?
+# Should be using the interaction model? - 2hrs 5mins latest
 
 So far we have modelled gene expression as a function of status and cell type 
-with an additive model. It is possible that the two factors interact such that
-differences in gene expression between different cell types are not the same
-across all three mouse statuses:
+with an additive model. 
 
-![](../images/AdditiveAndInteractionModels.png)
-[*pdf version*](../images/AdditiveAndInteractionModels.pdf)
+Now look at how to use an interactionmodel and how to decide if we need one
 
-Let's plot a PCA from `vst` transformed data. 
-Can you anticipate if the interaction term will be important?
+Go Through Models Image
+
+- status and celltype are interacting in some way to create additional changes
+
+Let's revisit PCA from yesterday
+
+we are using vst, vst and rlog are mostly interchangable in this case but vst is slightly faster
 
 ```{r pcaPlot, fig.width=5, fig.height=5}
 vstcounts <- vst(ddsObj.raw, blind=TRUE)
-plotPCA(vstcounts, intgroup=c("Status", "CellType"))
+plotPCA(vstcounts, intgroup=c("Status", "CellType")) # intgroup is what to colour by
 ```
 
-Maybe, but we can't be sure so we need a way to compare the two models.
+Do yes/no question, do you think looking at the pca we need an interaction model?
+
+spread is greater in the luminal cells than the basal cells so there might be an interaction there
+
+A warning: There are lots of things that you could put into the model, but each extra factor reduces power so you need the simplest appropriate model. How do we know what that is?
 
 ## Comparing two design models
 
@@ -478,34 +507,32 @@ compare to a model without the `Status` parameter: `~CellType`
 # create the simpler model
 design.reduced <- as.formula(~ CellType )
 
-# Compare the two designs
+# We want to test the simpler design against the more complex one
 ddsObjC <- DESeq(ddsObj, test="LRT", reduced=design.reduced)
-resCvCS <- results(ddsObjC)
-resCvCS
+resCvCS <- results(ddsObjC, alpha = 0.05)
+resCvCS # look at it in the console
 ```
 
-The second line of the results output shows us the test we are doing:
-
-  `LRT p-value: '~ CellType + Status' vs '~ CellType'`
+header: what comparison we are doing
 
 The null hypothesis is that there is no significant difference between the two
 models, i.e. the simpler model is sufficient to explain the variation in gene
-expression between the samples. If the the adjusted p-value for a gene passes
-a significance threshold (e.g. padj < 0.05) then we should consider using the 
-more complex model for this gene. 
+expression between the samples. If thats true we might as well use the simpler model and get more power.
 
 ```{r}
+# lets see how many
 sum(resCvCS$padj < 0.05, na.rm=TRUE)
 ```
 
-We can see that for `r sum(resCvCS$padj < 0.05, na.rm=TRUE)` genes the more 
-complex model does fit the data better. This would suggest that we should be
-including both terms in the linear model.
+7948 genes for which complex model is better (not surprising)
 
-Although we have a result for each gene, in practice we should choose one model 
-or the other and apply it to all genes.
+There will be some genes for which there isn't a difference, this model will never be best for every gene but we have to pick one.
 
-### Exercise 2
+So How Many? ...seems sensible
+
+This was simple vs additive, we actually want additive vs interaction, and thats down to you
+
+### Exercise 2 - 2hrs 30mis latest - give 20mins - save script
 >
 > When we looked at the PCA it did seem that an interaction model might be
 > warranted. Let's test that.  
@@ -555,6 +582,22 @@ ddsObjC2 <- DESeq(ddsObj2.raw, test="LRT", reduced=design.reduced)
 resCSvCxS <- results(ddsObjC2)
 table(resCSvCxS$padj < 0.05)
 ```
+
+9119 genes different
+
+yes/no - should we use th interaction model?
+
+yes/no - do you think the design of this experiment is sufficient to assess the interaction?
+
+In chat, how would you fix it?
+
+more reps, with simple model we would have 4 reps per group, if we go more complex its only 2
+
+As you can see, DESeq is dangerously simple, have to be careful and only interpret within the limitations
+
+There is lots more to deseq2 and you should read the manual for more
+
+SAVE SCRIPT
 
 ## Finally save the results in a new RData object
 
