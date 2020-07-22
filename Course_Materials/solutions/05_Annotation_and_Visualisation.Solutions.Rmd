@@ -18,7 +18,9 @@ library(tidyverse)
 ```
 
 ```{r prepareData, echo=FALSE, message=FALSE, warning=FALSE}
+# First load data and annotations
 load("../Robjects/DE.RData")
+load("../Robjects/Ensembl_annotations.RData")
 ```
 
 ## Exercise 1 - Retrieve the full annotation
@@ -29,6 +31,9 @@ load("../Robjects/DE.RData")
 > A reminder of the code we have used so far:
 
 ```{r eval=FALSE}
+# First load data if you haven't already
+load("Robjects/DE.RData")
+
 # lets set it up
 ourCols <- c("GENEID", "SYMBOL", "ENTREZID")
 ourKeys <- rownames(resLvV)[1:1000]
@@ -84,10 +89,19 @@ length(ourKeys)
 
 If you haven't already make sure you load in our data and annotation. Then shrink the values. You can copy and paste the code below.
 
-```{r}
-# First load data and annotations
-load("../Robjects/DE.RData")
-load("../Robjects/Ensembl_annotations.RData")
+```{r, echo=FALSE}
+#Shrink our values
+ddsShrink <- lfcShrink(ddsObj, coef="Status_lactate_vs_virgin")
+shrinkLvV <- as.data.frame(ddsShrink) %>%
+    rownames_to_column("GeneID") %>% 
+    left_join(ensemblAnnot, "GeneID") %>% 
+    rename(logFC=log2FoldChange, FDR=padj)
+```
+
+```{r, eval=FALSE}
+# First load data and annotations if you haven't already
+load("Robjects/DE.RData")
+load("Robjects/Ensembl_annotations.RData")
 
 #Shrink our values
 ddsShrink <- lfcShrink(ddsObj, coef="Status_lactate_vs_virgin")

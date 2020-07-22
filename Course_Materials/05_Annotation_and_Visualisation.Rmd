@@ -294,8 +294,8 @@ shrink the values. You can copy and paste the code below.
 
 ```{r eval=FALSE}
 # First load data and annotations
-load("../Robjects/DE.RData")
-load("../Robjects/Ensembl_annotations.RData")
+load("Robjects/DE.RData")
+load("Robjects/Ensembl_annotations.RData")
 
 #Shrink our values
 ddsShrink <- lfcShrink(ddsObj, coef="Status_lactate_vs_virgin")
