@@ -129,20 +129,28 @@ with missing values in the FDR as a result of the independent filtering by
 DESeq2.
 
 For this tool we need to use Entrez IDs, so we will need to eliminate genes with 
-missing values in 'Entrez'. We also 
+missing values in 'Entrez'.
 
-```{r enrichKEGG, include=FALSE}
+```{r enrichKEGG, eval=FALSE}
 sigGenes <- shrinkLvV %>% 
-    drop_na(Entrez, FDR) %>%
-    filter(FDR < 0.05 & abs(logFC) > 1) %>% 
+    filter(FDR < 0.05 & !is.na(FDR) & 
+               abs(logFC) > 1 & 
+               !is.na(Entrez)) %>% 
     pull(Entrez)
 
 kk <- enrichKEGG(gene = sigGenes, organism = 'mmu')
 head(kk, n=10)
 ```
 
-```{r echo=FALSE}
-head(kk, n=10) %>% as_tibble()
+```{r enrichKEGGprint, echo=FALSE}
+sigGenes <- shrinkLvV %>% 
+    filter(FDR < 0.05 & !is.na(FDR) & 
+               abs(logFC) > 1 & 
+               !is.na(Entrez)) %>% 
+    pull(Entrez)
+
+kk <- enrichKEGG(gene = sigGenes, organism = 'mmu')
+head(kk, n=10) %>%  as_tibble()
 ```
 
 
