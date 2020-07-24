@@ -5,8 +5,6 @@ date: '`r format(Sys.time(), "Last modified: %d %b %Y")`'
 output:
   html_document:
     toc: yes
-  html_notebook:
-    toc: yes
 minutes: 300
 layout: page
 subtitle: Gene Set Testing for RNA-seq
