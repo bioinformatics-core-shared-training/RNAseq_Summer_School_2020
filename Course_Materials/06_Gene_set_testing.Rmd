@@ -133,9 +133,8 @@ missing values in 'Entrez'.
 
 ```{r enrichKEGG, eval=FALSE}
 sigGenes <- shrinkLvV %>% 
-    filter(FDR < 0.05 & !is.na(FDR) & 
-               abs(logFC) > 1 & 
-               !is.na(Entrez)) %>% 
+    drop_na(Entrez, FDR) %>% 
+    filter(FDR < 0.05 & abs(logFC) > 1) %>% 
     pull(Entrez)
 
 kk <- enrichKEGG(gene = sigGenes, organism = 'mmu')
@@ -144,9 +143,8 @@ head(kk, n=10)
 
 ```{r enrichKEGGprint, echo=FALSE}
 sigGenes <- shrinkLvV %>% 
-    filter(FDR < 0.05 & !is.na(FDR) & 
-               abs(logFC) > 1 & 
-               !is.na(Entrez)) %>% 
+    drop_na(Entrez, FDR) %>% 
+    filter(FDR < 0.05 & abs(logFC) > 1) %>% 
     pull(Entrez)
 
 kk <- enrichKEGG(gene = sigGenes, organism = 'mmu')

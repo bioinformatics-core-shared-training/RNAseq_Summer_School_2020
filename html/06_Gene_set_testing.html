@@ -291,9 +291,8 @@ search_kegg_organism('mmu', by='kegg_code')</code></pre>
 <p>We will only use genes that have an adjusted p-value (FDR) of less than 0.04 and an absolute fold change greater than 2. We need to remember to eliminate genes with missing values in the FDR as a result of the independent filtering by DESeq2.</p>
 <p>For this tool we need to use Entrez IDs, so we will need to eliminate genes with missing values in 'Entrez'.</p>
 <pre class="r"><code>sigGenes &lt;- shrinkLvV %&gt;% 
-    filter(FDR &lt; 0.05 &amp; !is.na(FDR) &amp; 
-               abs(logFC) &gt; 1 &amp; 
-               !is.na(Entrez)) %&gt;% 
+    drop_na(Entrez, FDR) %&gt;% 
+    filter(FDR &lt; 0.05 &amp; abs(logFC) &gt; 1) %&gt;% 
     pull(Entrez)
 
 kk &lt;- enrichKEGG(gene = sigGenes, organism = 'mmu')
@@ -411,16 +410,16 @@ head(names(Mm.H))</code></pre>
 <pre><code>## # A tibble: 10 x 8
 ##    pathway                  pval     padj log2err     ES   NES  size leadingEdge
 ##    &lt;chr&gt;                   &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;list&gt;     
-##  1 HALLMARK_CHOLESTE…   8.34e- 9  2.09e-7   0.748  0.609  2.35    73 &lt;chr [33]&gt; 
-##  2 HALLMARK_OXIDATIV…   1.00e-10  5.00e-9  NA      0.514  2.30   196 &lt;chr [127]&gt;
-##  3 HALLMARK_TGF_BETA…   2.49e- 6  2.11e-5   0.627 -0.591 -2.11    54 &lt;chr [17]&gt; 
-##  4 HALLMARK_ADIPOGEN…   1.28e- 8  2.13e-7   0.748  0.445  2.00   199 &lt;chr [86]&gt; 
-##  5 HALLMARK_FATTY_AC…   2.53e- 6  2.11e-5   0.627  0.438  1.91   155 &lt;chr [56]&gt; 
-##  6 HALLMARK_MTORC1_S…   1.77e- 6  2.11e-5   0.644  0.410  1.85   203 &lt;chr [79]&gt; 
-##  7 HALLMARK_KRAS_SIG…   4.20e- 6  2.63e-5   0.611 -0.415 -1.83   190 &lt;chr [58]&gt; 
-##  8 HALLMARK_ESTROGEN…   3.43e- 6  2.45e-5   0.627 -0.411 -1.82   193 &lt;chr [64]&gt; 
-##  9 HALLMARK_INFLAMMA…   5.05e- 5  2.53e-4   0.557 -0.398 -1.76   188 &lt;chr [56]&gt; 
-## 10 HALLMARK_TNFA_SIG…   2.57e- 5  1.43e-4   0.576 -0.388 -1.72   199 &lt;chr [69]&gt;</code></pre>
+##  1 HALLMARK_CHOLESTE…   7.30e- 9  1.83e-7   0.761  0.609  2.32    73 &lt;chr [33]&gt; 
+##  2 HALLMARK_OXIDATIV…   1.00e-10  5.00e-9  NA      0.514  2.29   196 &lt;chr [127]&gt;
+##  3 HALLMARK_TGF_BETA…   4.11e- 6  2.94e-5   0.611 -0.591 -2.14    54 &lt;chr [17]&gt; 
+##  4 HALLMARK_ADIPOGEN…   3.91e- 8  6.52e-7   0.720  0.445  1.99   199 &lt;chr [86]&gt; 
+##  5 HALLMARK_FATTY_AC…   2.23e- 6  2.78e-5   0.627  0.438  1.89   155 &lt;chr [56]&gt; 
+##  6 HALLMARK_MTORC1_S…   3.73e- 6  2.94e-5   0.627  0.410  1.84   203 &lt;chr [79]&gt; 
+##  7 HALLMARK_KRAS_SIG…   3.17e- 6  2.94e-5   0.627 -0.415 -1.84   190 &lt;chr [58]&gt; 
+##  8 HALLMARK_ESTROGEN…   5.26e- 6  3.29e-5   0.611 -0.411 -1.83   193 &lt;chr [64]&gt; 
+##  9 HALLMARK_INFLAMMA…   3.45e- 5  1.73e-4   0.557 -0.398 -1.75   188 &lt;chr [56]&gt; 
+## 10 HALLMARK_TNFA_SIG…   2.53e- 5  1.40e-4   0.576 -0.388 -1.72   199 &lt;chr [69]&gt;</code></pre>
 </div>
 <div id="enrichment-score-plot" class="section level2">
 <h2>Enrichment score plot</h2>
