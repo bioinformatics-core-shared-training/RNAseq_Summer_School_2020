@@ -36,7 +36,7 @@ during the taught course.
 7. Annotation and Visualisation - extended 
     - [Annotation with biomaRt](extended_html/Annotation_With_BioMart.html)  
         - [practical solutions](extended_html/Annotation_With_BioMart.Solutions.html)
-    - [Additional annotation and plotting](Supplementary_Materials/S3_Annotation_and_Visualisation.nb.html)
+    - [Additional annotation and plotting](Supplementary_Materials/S3_Annotation_and_Visualisation.html)
 
 8. Gene set testing - extended
     - [Gene-set testing](extended_html/06_Gene_set_testing.html)
