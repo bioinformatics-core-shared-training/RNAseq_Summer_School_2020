@@ -34,9 +34,8 @@ during the taught course.
         [Introduction to R](https://bioinformatics-core-shared-training.github.io/r-intro/)
 
 7. Annotation and Visualisation - extended 
-    - [Annotation and Visualisation of RNA-seq results](extended_html/05_Annotation_and_Visualisation.html)  
-    - [practical 
-solutions](extended_html/05_Annotation_and_Visualisation.Solutions.html)
+    - [Annotation with biomaRt](extended_html/Annotation_With_BioMart.html)  
+        - [practical solutions](extended_html/Annotation_With_BioMart.Solutions.html)
     - [Additional annotation and plotting](Supplementary_Materials/S3_Annotation_and_Visualisation.nb.html)
 
 8. Gene set testing - extended
