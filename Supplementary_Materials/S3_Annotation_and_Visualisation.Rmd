@@ -4,8 +4,6 @@ subtitle: "Annotation and Visualisation of RNA-seq results - Supplementary Mater
 author: "Stephane Ballereau, Abbi Edwards, Oscar Rueda, Ashley Sawle"
 date: '`r format(Sys.time(), "Last modified: %d %b %Y")`'
 output:
-  html_notebook:
-    toc: yes
   html_document:
     toc: yes
 minutes: 300
@@ -16,19 +14,84 @@ editor_options:
 ---
 
 ```{r setup, message=FALSE}
-library(biomaRt)
 library(DESeq2)
 library(tidyverse)
 ```
 
 Load in the datasets from the Annotation and Visualisation main session
 
-```{r loadData}
-load("../Course_Materials/Robjects/Ensembl_annotations.RData")
-load("../Course_Materials/Robjects/Annotated_Results_LvV.RData")
+```{r loadData, eval=FALSE}
+load("~/Course_Materials/RNAseq/Robjects/Ensembl_annotations.RData")
+load("~/Course_Materials/RNAseq/Robjects/Annotated_Results_LvV.RData")
+load("~/Course_Materials/RNAseq/Robjects/DE.RData")
 ```
 
-### Working with Genomic Locations - Transcript database packages
+```{r loadData2, echo=FALSE}
+load("../Course_Materials/Robjects/Ensembl_annotations.RData")
+load("../Course_Materials/Robjects/Annotated_Results_LvV.RData")
+load("../Course_Materials/Robjects/DE.RData")
+```
+
+## Strip chart for gene expression
+
+Before following up on the DE genes with further lab work, a recommended *sanity
+check* is to have a look at the expression levels of the individual samples for 
+the genes of interest. We can quickly look at grouped expression by using 
+`plotCounts` function of `DESeq2` to  retrieve the normalised expression values 
+from the `ddsObj` object and then plotting with  `ggplot2`.
+
+```{r plotGeneCounts}
+# Let's look at the most significantly differentially expressed gene
+topgene <- filter(shrinkLvV, Symbol=="Wap")
+geneID <- topgene$GeneID
+plotCounts(ddsObj, gene = geneID, intgroup = c("CellType", "Status"),
+           returnData = T) %>% 
+    ggplot(aes(x=Status, y=log2(count))) +
+      geom_point(aes(fill=Status), shape=21, size=2) +
+      facet_wrap(~CellType) +
+      expand_limits(y=0)
+```
+
+
+### Interactive StripChart with Glimma
+
+An interactive version of the volcano plot above that includes the raw per 
+sample values in a separate panel is possible via the `glXYPlot` function in the
+*Glimma* package.
+
+
+```{r Glimma, eval=FALSE}
+library(Glimma)
+
+group <- sampleinfo %>% 
+  mutate(Group=str_c(CellType, "_", Status) %>%
+               str_remove_all("[aeiou]")) %>% 
+  pull(Group)
+
+de <- as.integer(shrinkLvV$FDR <= 0.05 & !is.na(shrinkLvV$FDR))
+
+normCounts <- log2(counts(ddsObj))
+
+glXYPlot(
+  x = shrinkLvV$logFC,
+  y = -log10(shrinkLvV$pvalue),
+  xlab = "logFC",
+  ylab = "FDR",
+  main = "Lactating v Virgin",
+  counts = normCounts,
+  groups = group,
+  status = de,
+  anno = shrinkLvV[, c("GeneID", "Symbol", "Description")],
+  folder = "volcano"
+)
+```
+
+This function creates an html page (./volcano/XY-Plot.html) with a volcano plot 
+on the left and a plot showing the log-CPM per sample for a selected gene on the
+right. A search bar is available to search for genes of interest.
+
+
+# Working with Genomic Locations - Transcript database packages
 
 There is a whole suite of annotation packages that can be used to access and for
 perform advanced queries on information about the genomic location of genes, 
@@ -49,9 +112,14 @@ using the package
 The created database is only loaded into the current R session. You will need 
 to run this command each time - it can be a little slow.
 
+```{r createTxDBGTF2, eval=FALSE, echo=FALSE}
+library(GenomicFeatures)
+txMm <- makeTxDbFromGFF(file = "../Course_Materials/references/Mus_musculus.GRCm38.97.gtf", format = "gtf")
+```
+
 ```{r createTxDBGTF, eval=FALSE}
 library(GenomicFeatures)
-txMm <- makeTxDbFromGFF(file = "../Course_Materials/counts/Mus_musculus.GRCm38.80.gtf", format = "gtf")
+txMm <- makeTxDbFromGFF(file = "references/Mus_musculus.GRCm38.97.gtf", format = "gtf")
 ```
 
 #### Creating a TxDb database from Biomart
@@ -59,6 +127,7 @@ The created database is only loaded into the current R session. You will need to
 run this command each time.
 
 ```{r createTxDBBiomart, eval=FALSE}
+library(biomaRt)
 library(GenomicFeatures)
 txMm <- makeTxDbFromBiomart(dataset="mmusculus_gene_ensembl")
 ```
@@ -71,16 +140,27 @@ whenever it is needed, saving you having to build the database each time.
 
 A little extra work is needed at the command line to build the package from the 
 files produced by this method. Feel free to skip this section if you want - the 
-previous two methods are adequate if you can tolderate the short wait each time 
+previous two methods are adequate if you can tolerate the short wait each time 
 you create the database.
+
+```{r creatTxDBpackage2, eval=FALSE, echo=FALSE}
+library(GenomicFeatures)
+makeTxDbPackageFromBiomart(version="0.01",
+                           destDir = "../Course_Materials/references/",
+                           maintainer="Some One <so@someplace.org>",
+                           author="Some One <so@someplace.com>",
+                           dataset="mmusculus_gene_ensembl", 
+                           circ_seqs = "MT")
+```
 
 ```{r creatTxDBpackage, eval=FALSE}
 library(GenomicFeatures)
 makeTxDbPackageFromBiomart(version="0.01",
-                           destDir = "~",
+                           destDir = "~/Course_Materials/RNAseq/references/",
                            maintainer="Some One <so@someplace.org>",
                            author="Some One <so@someplace.com>",
-                           dataset="mmusculus_gene_ensembl")
+                           dataset="mmusculus_gene_ensembl", 
+                           circ_seqs = "MT")
 ```
 
 This creates a new folder in your *home* directory (`~` is a shortcut for home).
@@ -102,30 +182,50 @@ RStudio is, you can run code from languages other than R when it is more
 convenient for you to do so.
 
 
-```{bash, eval=FALSE}
+```{bash, eval=FALSE, echo=FALSE, include=FALSE}
 OldName=TxDb.Mmusculus.BioMart.ENSEMBLMARTENSEMBL.GRCm38.p6
 NewName=TxDb.Mmusculus.Ens.GRCm38
 
-cd ~
+cd ../Course_Materials/references
 # rename the package directory
 mv ${OldName} ${NewName}
 
-cd ${NewName}
 # rename the database file
 mv inst/extdata/${OldName}.sqlite inst/extdata/${NewName}.sqlite
 
 # replace the references in the old directory
-sed -i s/${OldName}/${NewName}/ DESCRIPTION 
-sed -i s/${OldName}/${NewName}/ man/package.Rd 
+sed -i s/${OldName}/${NewName}/ ${NewName}/DESCRIPTION 
+sed -i s/${OldName}/${NewName}/ ${NewName}/man/package.Rd 
 
-cd ~
+
 # Build the package from the directory of files created by the above command
 R CMD build TxDb.Mmusculus.Ens.GRCm38
 # Install the package from the tarball created
 R CMD INSTALL TxDb.Mmusculus.Ens.GRCm38.p6_0.01.tar.gz
 ```
 
-```{r loadTxDBlibrary, eval=FALSE}
+```{bash, eval=FALSE}
+OldName=TxDb.Mmusculus.BioMart.ENSEMBLMARTENSEMBL.GRCm38.p6
+NewName=TxDb.Mmusculus.Ens.GRCm38
+
+cd ~/Course_Materials/RNAseq/references
+# rename the package directory
+mv ${OldName} ${NewName}
+
+# rename the database file
+mv inst/extdata/${OldName}.sqlite inst/extdata/${NewName}.sqlite
+
+# replace the references in the old directory
+sed -i s/${OldName}/${NewName}/ ${NewName}DESCRIPTION 
+sed -i s/${OldName}/${NewName}/ ${NewName}man/package.Rd 
+
+# Build the package from the directory of files created by the above command
+R CMD build TxDb.Mmusculus.Ens.GRCm38
+# Install the package from the tarball created
+R CMD INSTALL TxDb.Mmusculus.Ens.GRCm38.p6_0.01.tar.gz
+```
+
+```{r loadTxDBlibrary}
 library(TxDb.Mmusculus.Ens.GRCm38)
 txMm <- TxDb.Mmusculus.Ens.GRCm38
 ```
@@ -167,18 +267,6 @@ select(txMm,
 ```
  
 
-> ### Challenge 3 {.challenge}
->
-> Use the txMm to retrieve the exon coordinates for the genes: 
-    + `ENSMUSG00000021604`
-    + `ENSMUSG00000022146`
-    + `ENSMUSG00000040118` 
->
-
-```{r solutionChallenge3, echo=FALSE, warning=FALSE, message=FALSE}
-
-```
-
 ## Overview of GenomicRanges
 
 One of the real strengths of the `txdb..` databases is the ability to interface 
@@ -217,7 +305,7 @@ There are a number of useful functions for calculating properties of the data
 For instance, we can quickly identify overlapping regions between two 
 `GenomicRanges`. 
 
-```{r findOverlaps}
+```{r findOverlaps2}
 keys <- c("ENSMUSG00000021604", "ENSMUSG00000022146", "ENSMUSG00000040118")
 genePos <- select(txMm,
                   keys = keys,
@@ -338,7 +426,7 @@ sigRegions
 
 ```{r exportTrack, eval=FALSE}
 library(rtracklayer)
-export(sigRegions , con = "../Course_Materials/results/topHits.bed")
+export(sigRegions , con = "~/Course_Materials/RNAseq/results/topHits.bed")
 ```
 
 ## Extracting Reads
@@ -352,26 +440,49 @@ library(GenomicAlignments)
 In the directory `small_bams` there should be `.bam` files for some of the samples in the example study. The workflow to produce these files is described in a [supplmentary page](../Supplementary_Materials/S1_Getting_raw_reads_from_SRA.nb.html) for the course. In brief, the raw reads (`fastq`) were downloaded from the Short Read Archive (SRA) and aligned with `hisat2`. Each bam file was named according to the file name in SRA, but we have renamed the files according to their name in the study. An index file (`.bai`) has been generated for each bam file. In order to reduce the size, the bam files used here only contain a subset of the reads that were aligned in the region chr15:101707000-101713000.
 
 
-```{r bamFiles}
-list.files("../Course_Materials/counts/small_bams/")
+```{r bamFiles, eval=FALSE}
+list.files("~/Course_Materials/RNAseq/small_bams/")
+```
+
+
+```{r bamFiles2, echo=FALSE}
+list.files("../Course_Materials/small_bams/")
 ```
 
 The `readGAlignments` function provides a simple interface to interrogate the aligned reads for a particular sample. It can also utilise the *index* file in order to retrieve only the reads that correspond to a specific region in an efficient manner. The output includes the genomic location of each aligned read and the CIGAR (**C**ompact **I**diosyncratic **G**apped **A**lignment **R**eport); where *M* denotes an match to the genome and *I*, *D* correspond to insertions and deletions.
 
-```{r readReads}
+```{r readReads, eval=FALSE}
 exo <- exonsBy(txMm, "gene") 
 generegion <- exo[["ENSMUSG00000022146"]] %>% 
     keepSeqlevels(value = 15, pruning.mode="tidy")
 
-my.reads <- readGAlignments(file="../Course_Materials/counts/small_bams/MCL1.DG.15.sm.bam",
+my.reads <- readGAlignments(file="~/Course_Materials/RNAseq/small_bams/MCL1.DG.15.sm.bam",
+                       param=ScanBamParam(which=generegion))
+my.reads
+```
+
+
+```{r readReads2, echo=FALSE}
+exo <- exonsBy(txMm, "gene") 
+generegion <- exo[["ENSMUSG00000022146"]] %>% 
+    keepSeqlevels(value = 15, pruning.mode="tidy")
+
+my.reads <- readGAlignments(file="../Course_Materials/small_bams/MCL1.DG.15.sm.bam",
                        param=ScanBamParam(which=generegion))
 my.reads
 ```
 
 It is possible to tweak the function to retrieve other potentially-useful information from the bam file, such as the mapping quality and flag.
 
-```{r additionalInfo}
-my.reads <- readGAlignments(file="../Course_Materials/counts/small_bams/MCL1.DG.15.sm.bam",
+```{r additionalInfo, eval=FALSE}
+my.reads <- readGAlignments(file="~/Course_Materials/RNAseq/small_bams/MCL1.DG.15.sm.bam",
+                       param=ScanBamParam(which=generegion,
+                                          what=c("seq","mapq","flag")))
+my.reads
+```
+
+```{r additionalInfo2, echo=FALSE}
+my.reads <- readGAlignments(file="../Course_Materials/small_bams/MCL1.DG.15.sm.bam",
                        param=ScanBamParam(which=generegion,
                                           what=c("seq","mapq","flag")))
 my.reads
@@ -448,19 +559,33 @@ autoplot(top200, layout="karyogram", aes(color=UpRegulated, fill=UpRegulated))
 `ggbio` is also able to plot the structure of genes according to a particular model represented by a `GenomicFeatures` object, such as the object we created earlier with the exon coordinates for each gene in the GRCm38 genome.
 
 
-```{r geneModelPlot}
+```{r geneModelPlot, message=FALSE}
 autoplot(txMm, which=exo[["ENSMUSG00000022146"]])
 ```
 
 We can even plot the location of sequencing reads if they have been imported using readGAlignments function (or similar).
 
-```{r coveragePlot}
+```{r coveragePlot, eval=FALSE}
 myreg <- exo[["ENSMUSG00000022146"]] %>% 
     GenomicRanges::reduce() %>% 
     flank(width = 1000, both = T) %>% 
     keepSeqlevels(value = 15, pruning.mode="tidy")
 
-bam <- readGappedReads(file="../Course_Materials/counts/small_bams/MCL1.DG.15.sm.bam",
+bam <- readGappedReads(file="~/Course_Materials/RNAseq/small_bams/MCL1.DG.15.sm.bam",
+                       param=ScanBamParam(which=myreg), use.names = TRUE)
+
+autoplot(bam, geom = "rect") + 
+    xlim(GRanges("15", IRanges(6800000, 6900000)))
+```
+
+
+```{r coveragePlot2, echo=FALSE}
+myreg <- exo[["ENSMUSG00000022146"]] %>% 
+    GenomicRanges::reduce() %>% 
+    flank(width = 1000, both = T) %>% 
+    keepSeqlevels(value = 15, pruning.mode="tidy")
+
+bam <- readGappedReads(file="../Course_Materials/small_bams/MCL1.DG.15.sm.bam",
                        param=ScanBamParam(which=myreg), use.names = TRUE)
 
 autoplot(bam, geom = "rect") + 
